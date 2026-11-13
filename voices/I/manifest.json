@@ -1,0 +1,144 @@
+{
+  "voice": "I",
+  "voice_id": "M09",
+  "name": "清脆男童",
+  "age_target": "6–10岁",
+  "reference_sha256": "e7c21c91320df936a59d9d47e961641c3c404a278b7ba50eb64e24c3d970f057",
+  "engine": "Qwen3-TTS-12Hz-0.6B-Base",
+  "clips": [
+    {
+      "text": "你好，我是阿德。有些话一时说不出口，没关系，我们一起慢慢理清楚。",
+      "src": "/voice-i/2675dcfd974f34c53269.wav",
+      "duration": 6.64,
+      "sha256": "2b5d2918a07c44290cbe484509e3f39d13c597a4bc5700e78d6b19942603acfb"
+    },
+    {
+      "text": "嗯，我在听。你不用着急，慢慢说就好。",
+      "src": "/voice-i/d7cddf7dfe75413ba434.wav",
+      "duration": 4.48,
+      "sha256": "e0e5b4a9561741bf3b2b2c4fb5bd8c8b8989380397efd0912fd46c5fc74e7dd8"
+    },
+    {
+      "text": "这一关，你做得很好。愿意开口，就是很棒的一步。",
+      "src": "/voice-i/18acbde28ac614222155.wav",
+      "duration": 4.72,
+      "sha256": "448148dd9f558cf2f63c751e05d668df15adfffd1dc269e59e79901dcae3402c"
+    },
+    {
+      "text": "先慢慢呼吸，放松一下。我们可以一步一步来。",
+      "src": "/voice-i/c1a916954ba2e818e5e6.wav",
+      "duration": 3.68,
+      "sha256": "89e98d92efd53d290e9ed1b01233e53254850180d64f67b217de4fe7813d69ee"
+    },
+    {
+      "text": "让我想一想。你最希望对方理解的是哪一点呢？",
+      "src": "/voice-i/c4fbf0506496fd9ed9a9.wav",
+      "duration": 3.84,
+      "sha256": "d56d277c2eb485f1e5d86500b297e04034f670cf7325ac19c4944316a04fab7b"
+    },
+    {
+      "text": "太好了，又往前走了一步。给自己一个小小的掌声吧。",
+      "src": "/voice-i/7747ca25f4e349f354e6.wav",
+      "duration": 4.48,
+      "sha256": "91d21eca8224fbe5c624595d7f5d17a7deaf7634bab04666a0ba75fb4758059c"
+    },
+    {
+      "text": "今天辛苦啦。先歇一会儿，我们再一起想办法。",
+      "src": "/voice-i/3120321b197f40390a2c.wav",
+      "duration": 3.6,
+      "sha256": "3dc1298de686fc4e61aa2b0775f789d41bba08cb3027322b129e1c2ca41ba5af"
+    },
+    {
+      "text": "今天就先到这里吧。好好休息，晚安。",
+      "src": "/voice-i/29cfc05b644e176a6c56.wav",
+      "duration": 3.44,
+      "sha256": "b15128468c5ba21eabcab462be85c74a206a92f8f6ac97d5f4085208cf5e9a6a"
+    },
+    {
+      "text": "正因为是一家人，这话才更得掰开了说。您说个数，该我担的我不含糊，可不能一句\"自己人\"就把什么都抹过去。",
+      "src": "/voice-i/1450e69de5dfc04b90fe.wav",
+      "duration": 9.84,
+      "sha256": "505b3e9f3929df7c331c18fc46185f680dcf05cc1dea8e5784c3eed5fb7a09b1"
+    },
+    {
+      "text": "一家人更要把话说清楚，不然最后伤感情。我不是计较，是怕糊里糊涂后面更麻烦。咱们就事论事，把规则说好，感情才长久。",
+      "src": "/voice-i/829f4ecf49c52660100a.wav",
+      "duration": 10.88,
+      "sha256": "c23c053fe2bb07eb6b3baf7945324b5ce17af56930f29df64dee466d6b009edb"
+    },
+    {
+      "text": "妈，我知道你着急。可我也没闲着，真在处呢。这事儿急不得，你别老催，催我我心里更慌。",
+      "src": "/voice-i/9601c3bcb32493f49488.wav",
+      "duration": 8.48,
+      "sha256": "f10f177ea8344ad6efc56b1076cf8859e8bfaa6cb4e74465e34029b877ea19c1"
+    },
+    {
+      "text": "妈，我知道你着急，也是为我好。我也在认真找，但婚姻不是买菜，我想找个能过一辈子的。你总催，我压力更大。咱们多聊点别的，我有进展一定告诉你。",
+      "src": "/voice-i/c4b183f6229e963b83a6.wav",
+      "duration": 14.48,
+      "sha256": "53ae549d9c8dea41f461adce93a2593f7d1780db0750caa276200aa9fb8f34a4"
+    },
+    {
+      "text": "叔叔阿姨，工作上的事你们放心，我踏实干着呢。具体挣多少，我俩回头慢慢盘算，今天头回上门，就想陪你们好好吃顿饭。",
+      "src": "/voice-i/c04f96a87b8b120c09e5.wav",
+      "duration": 10.56,
+      "sha256": "6188277bf6d680bb51b0c81974769769dba6f06e29a22219bb57538e5fd8610a"
+    },
+    {
+      "text": "叔叔阿姨，谢谢你们关心我。工作目前还稳，房贷和家里的事我们也在认真打算。不过今天第一次见面，我有点紧张，怕说不好。具体安排我和对象回去商量好，再慢慢跟你们说。今天更想多了解你们，身体怎么样，平时喜欢什么。",
+      "src": "/voice-i/1510c742201b85a2db7c.wav",
+      "duration": 19.12,
+      "sha256": "bcd0805b3074012ab08677e5efd3c52d1ba9dcbbdb7bf21cd0c42aef11fa2293"
+    },
+    {
+      "text": "先不拿别人家数字比。把总预算、用途、不借债底线列清，再定方案。",
+      "src": "/voice-i/e751dc2fa74e60d89cfe.wav",
+      "duration": 7.76,
+      "sha256": "2f2a6a47b5b4f5f0e2728f6bdc9a7d049335db38e571672bf8cdd8dffda29e91"
+    },
+    {
+      "text": "我知道彩礼对两家都重要，也理解你们在意面子和安全感。但拿别人家数字互相比较，只会越谈越僵。我们先看自己能承受多少，定不借债底线，再说彩礼用途和归属。这样定出来的数，才不影响婚后生活。",
+      "src": "/voice-i/66ca066b0fff47c5b5f3.wav",
+      "duration": 16.88,
+      "sha256": "32edaff94639a24c3934aeed53d6edbb88e2f89366f4337fbdc74d4532778205"
+    },
+    {
+      "text": "妈，我们屋有时候换衣服、歇着，您进来前先轻轻敲一下呗。不是见外，就是大家都自在点。",
+      "src": "/voice-i/01a6ee177a92cdff28d3.wav",
+      "duration": 8.4,
+      "sha256": "8a2c33cf5c50b9505612ef17c2503249a6423845195ba3b48f99b450388c0187"
+    },
+    {
+      "text": "妈，我们休息或换衣服时，您先敲个门。不是见外，是大家都方便。您尊重我们隐私，我们也更自在。",
+      "src": "/voice-i/7362111842b134bca3d0.wav",
+      "duration": 9.92,
+      "sha256": "c2470d725d66418a4401918d08d0524d585e2da61d9a1ad4d54a8903ebf4bd9e"
+    },
+    {
+      "text": "领导，您这话我可真不敢接。今天胃里翻着酸水，一口都不敢沾。我拿茶敬您，先干了，您随意。",
+      "src": "/voice-i/c3b220328a7ef6b2e4cb.wav",
+      "duration": 8.24,
+      "sha256": "fe2e3e60e1852df60af85fcfe1cfb5410d0d1717dd2668334a62d668de46d129"
+    },
+    {
+      "text": "领导，我特别尊重您，也知道您想热闹。但我身体真不行，喝多了怕失态，反而不好。今天我以茶代酒，认真敬您。心意到了，工作上我一定更用心。您多体谅。",
+      "src": "/voice-i/b316963aa6d0ecd53f50.wav",
+      "duration": 14.16,
+      "sha256": "6f070c8eb24dcfe81f389fb797cdcee40a21097e74a42510c20f8c9e499e0288"
+    },
+    {
+      "text": "理解你排期紧。这个事卡在哪？需要我找谁协调？今天先定个最晚反馈时间。",
+      "src": "/voice-i/77aed67826741c758794.wav",
+      "duration": 8.24,
+      "sha256": "0b1291f995d21ce37040d9e2cd6a624cddac1382152d093c5a6f279db3519106"
+    },
+    {
+      "text": "我理解名额有限。但我想知道，如果名额放开，我差在哪？下次具体做到什么程度？",
+      "src": "/voice-i/2f97febaf1044bdf29e3.wav",
+      "duration": 7.84,
+      "sha256": "2022fb1b23a8d2e7d8dccddf3da776ffe73af6ffd6def144fe21c73a7e9bd04e"
+    }
+  ],
+  "completed": 22,
+  "planned": 22
+}

@@ -1,0 +1,13 @@
+{
+  "selected_voice": "I",
+  "voice_id": "M09",
+  "name": "清脆男童",
+  "age_target": "6–10岁",
+  "selected_on": "2026-11-13",
+  "scope": "得体说首页关联的现有试听和朗读音频；台词、人物、布局和交互不变",
+  "source": "https://xiaode-voice-audition-20261104.hybrid-66312-1898.chatgpt.site/",
+  "reference": "samples/I-M09-reference.wav",
+  "status": "generated_and_verified_22_clips",
+  "manifest": "voices/I/manifest.json",
+  "published_to_original_site": false
+}

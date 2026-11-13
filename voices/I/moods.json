@@ -1,0 +1,74 @@
+[
+  {
+    "id": "hello",
+    "title": "见面啦",
+    "description": "你好，我是阿德。有些话一时说不出口，没关系，我们一起慢慢理清楚。",
+    "motion": "wave",
+    "src": "/voice-i/2675dcfd974f34c53269.wav",
+    "voice": "I",
+    "voice_id": "M09"
+  },
+  {
+    "id": "listen",
+    "title": "我在听",
+    "description": "嗯，我在听。你不用着急，慢慢说就好。",
+    "motion": "listen",
+    "src": "/voice-i/d7cddf7dfe75413ba434.wav",
+    "voice": "I",
+    "voice_id": "M09"
+  },
+  {
+    "id": "encourage",
+    "title": "给你打气",
+    "description": "这一关，你做得很好。愿意开口，就是很棒的一步。",
+    "motion": "hop",
+    "src": "/voice-i/18acbde28ac614222155.wav",
+    "voice": "I",
+    "voice_id": "M09"
+  },
+  {
+    "id": "calm",
+    "title": "慢慢呼吸",
+    "description": "先慢慢呼吸，放松一下。我们可以一步一步来。",
+    "motion": "breathe",
+    "src": "/voice-i/c1a916954ba2e818e5e6.wav",
+    "voice": "I",
+    "voice_id": "M09"
+  },
+  {
+    "id": "think",
+    "title": "让我想想",
+    "description": "让我想一想。你最希望对方理解的是哪一点呢？",
+    "motion": "think",
+    "src": "/voice-i/c4fbf0506496fd9ed9a9.wav",
+    "voice": "I",
+    "voice_id": "M09"
+  },
+  {
+    "id": "celebrate",
+    "title": "又进步啦",
+    "description": "太好了，又往前走了一步。给自己一个小小的掌声吧。",
+    "motion": "celebrate",
+    "src": "/voice-i/7747ca25f4e349f354e6.wav",
+    "voice": "I",
+    "voice_id": "M09"
+  },
+  {
+    "id": "comfort",
+    "title": "抱抱心情",
+    "description": "今天辛苦啦。先歇一会儿，我们再一起想办法。",
+    "motion": "sway",
+    "src": "/voice-i/3120321b197f40390a2c.wav",
+    "voice": "I",
+    "voice_id": "M09"
+  },
+  {
+    "id": "goodnight",
+    "title": "晚安小伙伴",
+    "description": "今天就先到这里吧。好好休息，晚安。",
+    "motion": "sleep",
+    "src": "/voice-i/29cfc05b644e176a6c56.wav",
+    "voice": "I",
+    "voice_id": "M09"
+  }
+]
