@@ -34,6 +34,6 @@ GitHub同步不等于网站已经发布。主站仍需在原 Sites 项目中单�
 
 人物动画：[ade-character-animation](https://github.com/tenglongliu520-wq/ade-character-animation)。本次仅更换声线，没有修改双方联动接口。
 
-目前未添加开源许可证；仓库保持私有。
+仓库已按用户要求于2026-11-13改为公开，任何人可查看和下载。目前未添加开源许可证；公开可见不代表已授予代码、声音和角色素材的任意使用或再分发许可。
 
 Windows 本机也可双击 `启动预览.cmd`，再打开上面的本机地址；关闭启动窗口即可停止预览。脚本优先使用本机现有的 D:/AI/Ade-companion-20261104/venv Python，其他电脑使用 PATH 中的 Python。
