@@ -1,13 +1,21 @@
-# 语音与人物动画协作约定（初始草案）
+# 语音与人物动画接入
 
-语音库负责生成或加载音频、控制播放，并提供播放状态；动画库负责人物表现。
+## 当前接口
 
-| 事件 | 动画表现 |
-| --- | --- |
-| listening | 倾听，嘴巴闭合 |
-| thinking | 思考 |
-| speech-start | 切换到说话 |
-| speech-level，level 取值 0–1 | 依据实际音频能量驱动嘴型 |
-| speech-end / speech-stop / speech-error | 闭嘴，平滑回到待机 |
+先加载 `ade-motion-model.js`，再加载 `companion-avatar.js`，实例化 `new CompanionAvatar(host)` 并等待 `avatar.ready`。生产脚本默认从脚本同目录加载图集；独立预览服务器将该路径映射到 assets/hanfu-20261112/。
 
-事件携带同一条语音的 `utteranceId`，停止或切换语音后忽略过期事件。没有实际播放的音频时不触发说话动作。以上为待实现的接口约定，不代表已有功能。
+- `setState('idle' | 'listen' | 'think' | 'talk' | 'wave')` 切换状态。
+- `greet()` 挥手，`setPaused(boolean)` 暂停或恢复。
+- 将真实音频的 Web Audio AnalyserNode 赋给 `avatar.analyser`，或在播放过程中定期调用 `setSpeechLevel(0–1)`；外部音量260ms无更新后归零。
+- 音频暂停、结束、停止或出错时调用 `setState('idle')` 与 `setSpeechLevel(0)`。
+- `destroy()` 释放渲染器；页面隐藏时停止绘制，减少动态时保持静态。
+
+I/M09已配音文本由语音库 `AdeVoice.plan(text)` 规划；未知文本返回空列表，不使用其他声音替代。`/voice-i/` 对应语音库 `voices/I/`。
+
+## iframe 与边界
+
+原主站使用 `ade-avatar-connect` 握手和 `ade-avatar-motion` 消息，校验来源及源窗口。独立演示直接挂载角色，不扩大来源白名单。
+
+早期文档中的 `speech-start`、`speech-level` 等通用事件总线仍是建议方案，当前代码没有该事件总线。
+
+当前基线为2026-11-13的I/M09音频与古装阿德动画，来源记录见各库版本文档。独立预览不修改已发布网站。接口变化应同步两仓库。
