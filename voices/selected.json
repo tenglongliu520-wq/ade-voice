@@ -9,5 +9,7 @@
   "reference": "samples/I-M09-reference.wav",
   "status": "generated_and_verified_22_clips",
   "manifest": "voices/I/manifest.json",
-  "published_to_original_site": false
+  "published_to_original_site": true,
+  "published_version": 47,
+  "published_url": "https://limao-zhoudou-81.hybrid-klvvc-7155.chatgpt.site"
 }
