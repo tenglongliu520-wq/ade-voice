@@ -19,7 +19,7 @@ class Handler(SimpleHTTPRequestHandler):
             relative = route[len('/voice-i/'):]
         elif route == '/src/web/ade-puppet-atlas-20261112.png':
             relative = 'assets/hanfu-20261112/ade-puppet-atlas-20261112.png'
-        elif route.startswith(('/examples/', '/src/web/')):
+        elif route.startswith(('/examples/', '/src/web/', '/auditions/')):
             relative = route.lstrip('/')
         else:
             return str(ROOT / '.not-served')
