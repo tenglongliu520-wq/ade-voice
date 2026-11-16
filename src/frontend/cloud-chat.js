@@ -138,7 +138,7 @@
  const holdVoice=window.AdeHoldToTalk.mount({button:$('#mic'),input,label:$('#micLabel'),status:setStatus,isBusy:()=>busy,onActive:active=>{voiceMode=active;if(active){stopSpeech();state('listen','嗯，我在认真听');}else state('idle','我在这里，慢慢来');controls();},onCommit:()=>{reviewPending=true;controls();}});
  $('#stop').onclick=()=>{holdVoice.cancel();if(voiceMode)reviewTranscript(partialText,'已停止录音，草稿已保留，请校对后点击发送。');else endVoice();controller?.abort();stopSpeech();setStatus('已停止；输入框中的文字可修改后手动发送。');};
  $('#autoSpeak').onchange=()=>{if(!$('#autoSpeak').checked){stopSpeech();resumeListening();}};
- $('#clear').onclick=()=>{if(busy)return;endVoice();stopSpeech();history=[];log.replaceChildren();addMessage('assistant','重新开始啦。今天有什么想和我聊的吗？');$('#prompts').hidden=false;input.value='';reviewPending=false;controls();setStatus('当前对话已清空。');};
+ $('#clear').onclick=()=>{if(busy)return;holdVoice.cancel();endVoice();stopSpeech();history=[];log.replaceChildren();addMessage('assistant','重新开始啦。今天有什么想和我聊的吗？');$('#prompts').hidden=false;input.value='';reviewPending=false;controls();setStatus('当前对话已清空。');};
  $('#motion').onclick=event=>{const paused=event.currentTarget.getAttribute('aria-pressed')!=='true';avatar.setPaused(paused);event.currentTarget.setAttribute('aria-pressed',String(paused));event.currentTarget.textContent=paused?'开启动作':'暂停人物动作';};
  $('#prompts').querySelectorAll('button').forEach(button=>button.onclick=()=>send(button.textContent));
  document.addEventListener('visibilitychange',()=>{if(document.hidden){holdVoice.cancel();if(voiceMode)reviewTranscript(partialText,'录音已暂停，草稿已保留；回来后请校对再发送。');else endVoice();stopSpeech();}});window.addEventListener('pagehide',()=>{holdVoice.cancel();endVoice();controller?.abort();stopSpeech();});
