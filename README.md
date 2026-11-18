@@ -12,6 +12,8 @@
 
 ## 当前选择
 
+最新保留10个候选：**Y02、Y04、Y05、Y06、Y07、Y08、Y09、N02、N05、N10**。打开 [10人混合试听页](auditions/20261118-under20/selected10/index.html)，原编号和年龄目标保留，混合组不再全部低于20岁。最终主声尚未选定，正式I/M09不变。
+
 2026-11-18 首轮保留少年候选 **Y02、Y04、Y05、Y06、Y07、Y08、Y09**，详见该批 `shortlist.json` 与 `Y-shortlist-comparison.wav`；暂未选定最终主声，正式I/M09不变。
 
 新增候选：[`2026-11-18 · 10位20岁以下少年男声`](auditions/20261118-under20/README.md)。Y01–Y10的听感设计目标为15–19岁，目录内 `index.html` 可离线试听，或在本地预览服务访问 `/auditions/20261118-under20/index.html`。全部待用户听审，不替换正式I/M09。

@@ -1,0 +1,11 @@
+{
+  "status": "user_shortlisted_not_production_selected",
+  "selected_on": "2026-11-18",
+  "voice_ids": [
+    "N02",
+    "N05",
+    "N10"
+  ],
+  "combined_with": "../20261118-under20/selected10/manifest.json",
+  "production_voice_changed": false
+}

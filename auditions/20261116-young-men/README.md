@@ -9,3 +9,5 @@
 `catalog.json` 是本批设计配置；`progress-*.json` 仅为本机续做记录，不提交Git。正式已选声线 `voices/selected.json` 保持I/M09，选定并完成跨句验证后另行切换。
 
 模型来源：https://github.com/QwenLM/Qwen3-TTS 。本批为文字描述生成的合成声音，不涉及用户录音。
+
+2026-11-18 用户保留 **N02、N05、N10**，加入Y系列保留组，合成10人候选集，见 [混合试听](../20261118-under20/selected10/index.html)。保留原年龄目标和编号，正式声音未替换。

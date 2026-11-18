@@ -56,6 +56,7 @@ if (root / 'shortlist.json').exists():
     page = page.replace('<section class="compare">', section + '<section class="compare">', 1)
     page = page.replace('此批尚未经用户听审，不直接替换正式声音。', '已记录首轮保留名单，最终主声尚未选定，不直接替换正式声音。')
     shortlist_files = ['shortlist.json', 'Y-shortlist-comparison.wav']
+page = page.replace('<h1>', '<p><a href="selected10/index.html">打开最新保留的10人混合试听（7个Y＋3个N）</a></p><h1>', 1)
 (root / 'index.html').write_text(page.replace('TEXT', html.escape(catalog['text'])).replace('CARDS', ''.join(cards)), encoding='utf-8')
 archive = root / 'Ade-10-under20-male-voices-20261118.zip'
 with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as z:
@@ -63,6 +64,10 @@ with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as z:
         z.write(root / name, name)
     for file in out.glob('*.wav'):
         z.write(file, 'audio/' + file.name)
+    if (root / 'selected10').is_dir():
+        for file in (root / 'selected10').rglob('*'):
+            if file.is_file() and file.suffix != '.zip':
+                z.write(file, file.relative_to(root).as_posix())
 with zipfile.ZipFile(archive) as z:
     assert z.testzip() is None
 print('PASS: ten current designs, distinct raw hashes, normalized audio, comparison and offline ZIP', flush=True)
