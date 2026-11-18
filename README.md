@@ -12,6 +12,8 @@
 
 ## 当前选择
 
+2026-11-18 首轮保留少年候选 **Y02、Y04、Y05、Y06、Y07、Y08、Y09**，详见该批 `shortlist.json` 与 `Y-shortlist-comparison.wav`；暂未选定最终主声，正式I/M09不变。
+
 新增候选：[`2026-11-18 · 10位20岁以下少年男声`](auditions/20261118-under20/README.md)。Y01–Y10的听感设计目标为15–19岁，目录内 `index.html` 可离线试听，或在本地预览服务访问 `/auditions/20261118-under20/index.html`。全部待用户听审，不替换正式I/M09。
 
 新增候选：[`2026-11-16 · 10位青年磁性男声`](auditions/20261116-young-men/README.md)。打开该目录的 `index.html` 可离线试听，也可在预览服务访问 `/auditions/20261116-young-men/index.html`。本批20–29岁为设计目标，尚未用户听审，不改变以下正式已选声线。

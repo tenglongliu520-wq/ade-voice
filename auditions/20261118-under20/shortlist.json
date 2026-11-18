@@ -1,0 +1,9 @@
+{
+  "batch": "20261118-under20",
+  "status": "user_shortlisted_not_production_selected",
+  "selected_on": "2026-11-18",
+  "voice_ids": ["Y02", "Y04", "Y05", "Y06", "Y07", "Y08", "Y09"],
+  "interpretation": "按最新Y系列记录；用户输入2/45/6/7/8/9中的45按4、5理解。",
+  "other_candidates": "archived_not_deleted",
+  "production_voice_changed": false
+}
