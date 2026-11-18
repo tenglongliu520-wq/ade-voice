@@ -12,6 +12,8 @@
 
 ## 当前选择
 
+新增候选：[`2026-11-18 · 10位20岁以下少年男声`](auditions/20261118-under20/README.md)。Y01–Y10的听感设计目标为15–19岁，目录内 `index.html` 可离线试听，或在本地预览服务访问 `/auditions/20261118-under20/index.html`。全部待用户听审，不替换正式I/M09。
+
 新增候选：[`2026-11-16 · 10位青年磁性男声`](auditions/20261116-young-men/README.md)。打开该目录的 `index.html` 可离线试听，也可在预览服务访问 `/auditions/20261116-young-men/index.html`。本批20–29岁为设计目标，尚未用户听审，不改变以下正式已选声线。
 
 2026-11-13 用户指定 I / M09「清脆男童」。`voices/selected.json` 记录选择；`voices/I/manifest.json` 记录现有22条台词与音频哈希；`samples/I-M09-reference.wav` 为原有合成候选的参考音，不是真人录音。
