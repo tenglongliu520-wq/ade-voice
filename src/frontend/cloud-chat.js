@@ -24,16 +24,17 @@
    const text=speechTasks.shift();speechAbort=new AbortController();
    try{
     if(!audioContext){const Context=window.AudioContext||window.webkitAudioContext;audioContext=new Context();}await audioContext.resume();
+    if(audioContext.state!=='running')throw Error('请点击回答下方的重听按钮，开启声音播放。');
     if(!busy)state('think','正在准备声音…');
     let response;
-    if(true){
-     const manifest=await (await fetch('/voice-i/manifest.json')).json();
-     const normalize=value=>value.replace(/\s+/g,'').replace(/[“”]/g,'"');
-     const clip=manifest.voice==='I'&&manifest.clips.find(item=>normalize(item.text)===normalize(text));
-     if(!clip){setStatus('这条新回答尚未配好I语音，请先看文字。');continue;}
-     response=await fetch(clip.src,{signal:speechAbort.signal});
-    }else response=await fetch('/api/ade/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text}),signal:speechAbort.signal});
-    if(!response.ok)throw Error('声音暂时未能播放，可稍后点击重听');
+    const manifestResponse=await fetch('/voice-i/manifest.json',{signal:speechAbort.signal});
+    if(!manifestResponse.ok)throw Error('阿德声线配置加载失败，请重试。');
+    const manifest=await manifestResponse.json();
+    const normalize=value=>value.replace(/\s+/g,'').replace(/[“”]/g,'"');
+    if(manifest.voice!=='I'||manifest.voice_id!=='M09')throw Error('阿德声线配置不正确。');
+    const clip=manifest.clips.find(item=>normalize(item.text)===normalize(text));
+    response=clip?await fetch(clip.src,{signal:speechAbort.signal}):await fetch('/api/ade/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text}),signal:speechAbort.signal});
+    if(!response.ok){const error=await response.json().catch(()=>({}));throw Error(error.detail||'声音暂时未能播放，可稍后点击重听');}
     const blob=await response.blob();if(sequence!==speechSequence)break;
     const buffer=await audioContext.decodeAudioData(await blob.arrayBuffer());if(sequence!==speechSequence)break;
     const source=audioContext.createBufferSource(),analyser=audioContext.createAnalyser();source.buffer=buffer;analyser.fftSize=256;source.connect(analyser);analyser.connect(audioContext.destination);avatar.analyser=analyser;
@@ -137,7 +138,7 @@
  input.oninput=()=>{if(!input.value.trim())reviewPending=false;controls();};
  const holdVoice=window.AdeHoldToTalk.mount({button:$('#mic'),input,label:$('#micLabel'),status:setStatus,isBusy:()=>busy,onActive:active=>{voiceMode=active;if(active){stopSpeech();state('listen','嗯，我在认真听');}else state('idle','我在这里，慢慢来');controls();},onCommit:()=>{reviewPending=true;controls();}});
  $('#stop').onclick=()=>{holdVoice.cancel();if(voiceMode)reviewTranscript(partialText,'已停止录音，草稿已保留，请校对后点击发送。');else endVoice();controller?.abort();stopSpeech();setStatus('已停止；输入框中的文字可修改后手动发送。');};
- $('#autoSpeak').onchange=()=>{if(!$('#autoSpeak').checked){stopSpeech();resumeListening();}};
+ $('#autoSpeak').onchange=()=>{if($('#autoSpeak').checked)unlockAudio();if(!$('#autoSpeak').checked){stopSpeech();resumeListening();}};
  $('#clear').onclick=()=>{if(busy)return;holdVoice.cancel();endVoice();stopSpeech();history=[];log.replaceChildren();addMessage('assistant','重新开始啦。今天有什么想和我聊的吗？');$('#prompts').hidden=false;input.value='';reviewPending=false;controls();setStatus('当前对话已清空。');};
  $('#motion').onclick=event=>{const paused=event.currentTarget.getAttribute('aria-pressed')!=='true';avatar.setPaused(paused);event.currentTarget.setAttribute('aria-pressed',String(paused));event.currentTarget.textContent=paused?'开启动作':'暂停人物动作';};
  $('#prompts').querySelectorAll('button').forEach(button=>button.onclick=()=>send(button.textContent));
