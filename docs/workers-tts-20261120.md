@@ -7,3 +7,5 @@
 新增回归测试模拟 Workers 对不支持选项的拒绝，并验证 302 不会被跟随。测试先复现失败，再通过修复；相关聊天、语音、按住说话共 16 项测试、TypeScript 检查与生产构建通过。对应站点发布版本为 58。
 
 Cloudflare 运行时说明：https://developers.cloudflare.com/workers/runtime-apis/request/
+
+补充验证：使用真实 Miniflare/workerd 运行代理，并请求现有 05 合成服务。旧 `error` 模式返回 504；新 `manual` 模式返回 200、`audio/wav`、`X-Ade-Voice: 05-Y07`，共 122924 字节，PCM RMS 为 0.1000、峰值为 0.8469，确认不是静音。此处命中已有短句缓存，约 5 秒完成；未缓存短句经公开 HTTPS 合成服务约 43 秒返回。该检查不等于线上浏览器扬声器试听；线上浏览器控制连续超时，尚未完成最终自动播放观察。
