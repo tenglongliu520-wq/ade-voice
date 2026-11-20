@@ -12,9 +12,9 @@
   if(!service.tts)return;
   const ticket=++serial;stopVoice();preparing=true;mode('think','正在准备阿德的声音…');controls();
   try{
-   const plan=await window.AdeVoice.plan(text);
-   if(!plan.length)throw Error('这条新回答的I声线尚未准备好，文字已保留。');
-   for(const src of plan){
+   speechController=new AbortController();
+   for await(const item of window.AdeVoice.audio(text,speechController.signal)){
+    const src=item.src||URL.createObjectURL(item.blob);
     if(ticket!==serial)return;
     const current=new Audio(src);voice=current;
     try{const Context=window.AudioContext||window.webkitAudioContext;if(!audioContext){audioContext=new Context();await audioContext.resume();}const source=audioContext.createMediaElementSource(current),analyser=audioContext.createAnalyser();analyser.fftSize=256;source.connect(analyser);analyser.connect(audioContext.destination);avatar.analyser=analyser;}catch{}
@@ -82,7 +82,7 @@
   if(local){try{const r=await fetch(API+'status',{signal:AbortSignal.timeout(5000)});if(r.ok)service=await r.json();}catch{}}
   try{await window.AdeVoice.ready;service.tts=true;}catch{service.tts=false;}
   $('#chatService').dataset.ready=String(service.ready);
-  $('#chatService').textContent=service.ready?'本地千问已连接 · '+(service.asr&&service.tts?'I声线已启用':'可连续文字对话，语音服务准备中'):'I清脆男童声线 · 话术练习模式';
+  $('#chatService').textContent=service.ready?'本地千问已连接 · '+(service.asr&&service.tts?'05号声音已启用':'可连续文字对话，语音服务准备中'):'05明亮亲切声线 · 话术练习模式';
   $('#chatRecord').title=service.asr?'本地语音识别':'本地语音服务接通后开放';$('#autoSpeak').disabled=!service.tts;
   if(!service.tts){$('#autoSpeak').checked=false;$('#autoSpeak').parentElement.title='本地朗读服务接通后开放';}
   controls();

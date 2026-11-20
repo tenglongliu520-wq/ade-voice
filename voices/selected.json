@@ -1,15 +1,12 @@
 {
-  "selected_voice": "I",
-  "voice_id": "M09",
-  "name": "清脆男童",
-  "age_target": "6–10岁",
-  "selected_on": "2026-11-13",
-  "scope": "得体说首页关联的现有试听和朗读音频；台词、人物、布局和交互不变",
-  "source": "https://xiaode-voice-audition-20261104.hybrid-66312-1898.chatgpt.site/",
-  "reference": "samples/I-M09-reference.wav",
-  "status": "generated_and_verified_22_clips",
-  "manifest": "voices/I/manifest.json",
-  "published_to_original_site": true,
-  "published_version": 47,
-  "published_url": "https://limao-zhoudou-81.hybrid-klvvc-7155.chatgpt.site"
+  "selected_voice": "05",
+  "voice_id": "Y07",
+  "name": "明亮亲切",
+  "selected_on": "2026-11-20",
+  "reference": "auditions/20261118-under20/selected10/audio/05.wav",
+  "reference_sha256": "5192c3dcef783feeb1f9fb679290e9059ee42e087eac53a4c38ff6065526902a",
+  "reference_text": "你好，我是阿德。不用急，慢慢说，我在听。不管什么事，我们一起想办法。",
+  "source": "https://tenglongliu520-wq.github.io/ade-voice/auditions/20261118-under20/selected10/audio/05.wav",
+  "scope": "首页及相关对话、试听页面的回答朗读",
+  "status": "selected_for_live_synthesis"
 }

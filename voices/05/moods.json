@@ -1,0 +1,66 @@
+[
+  {
+    "id": "hello",
+    "title": "见面啦",
+    "description": "你好，我是阿德。有些话一时说不出口，没关系，我们一起慢慢理清楚。",
+    "motion": "wave",
+    "voice": "05",
+    "voice_id": "Y07"
+  },
+  {
+    "id": "listen",
+    "title": "我在听",
+    "description": "嗯，我在听。你不用着急，慢慢说就好。",
+    "motion": "listen",
+    "voice": "05",
+    "voice_id": "Y07"
+  },
+  {
+    "id": "encourage",
+    "title": "给你打气",
+    "description": "这一关，你做得很好。愿意开口，就是很棒的一步。",
+    "motion": "hop",
+    "voice": "05",
+    "voice_id": "Y07"
+  },
+  {
+    "id": "calm",
+    "title": "慢慢呼吸",
+    "description": "先慢慢呼吸，放松一下。我们可以一步一步来。",
+    "motion": "breathe",
+    "voice": "05",
+    "voice_id": "Y07"
+  },
+  {
+    "id": "think",
+    "title": "让我想想",
+    "description": "让我想一想。你最希望对方理解的是哪一点呢？",
+    "motion": "think",
+    "voice": "05",
+    "voice_id": "Y07"
+  },
+  {
+    "id": "celebrate",
+    "title": "又进步啦",
+    "description": "太好了，又往前走了一步。给自己一个小小的掌声吧。",
+    "motion": "celebrate",
+    "voice": "05",
+    "voice_id": "Y07"
+  },
+  {
+    "id": "comfort",
+    "title": "抱抱心情",
+    "description": "今天辛苦啦。先歇一会儿，我们再一起想办法。",
+    "motion": "sway",
+    "voice": "05",
+    "voice_id": "Y07"
+  },
+  {
+    "id": "goodnight",
+    "title": "晚安小伙伴",
+    "description": "今天就先到这里吧。好好休息，晚安。",
+    "motion": "sleep",
+    "voice": "05",
+    "voice_id": "Y07"
+  }
+]
