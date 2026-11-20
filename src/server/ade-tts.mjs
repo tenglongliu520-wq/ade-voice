@@ -13,7 +13,7 @@ export async function handleTts(request,config={},fetcher=fetch){
  if(!config.url||!config.token)return reply('阿德实时语音服务尚未连接，文字已保留；连接后可点击重听。',503);
  try{
   const target=new URL(config.url);if(target.protocol!=='https:')return reply('语音服务配置不正确',503);
-  const upstream=await fetcher(target.href,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+config.token},body:JSON.stringify({text:text.trim(),voice:'05',voice_id:'Y07'}),signal:AbortSignal.any([request.signal,AbortSignal.timeout(180000)]),redirect:'error'});
+  const upstream=await fetcher(target.href,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+config.token},body:JSON.stringify({text:text.trim(),voice:'05',voice_id:'Y07'}),signal:AbortSignal.any([request.signal,AbortSignal.timeout(180000)]),redirect:'manual'});
   if(!upstream.ok)return reply('阿德语音服务暂时繁忙，请稍后点击重听。',503);
   if(upstream.headers.get('X-Ade-Voice')!=='05-Y07'||!upstream.headers.get('Content-Type')?.startsWith('audio/'))return reply('语音服务返回的声线或音频格式不正确',502);
   return new Response(upstream.body,{headers:{'Content-Type':upstream.headers.get('Content-Type'),'Cache-Control':'no-store','X-Ade-Voice':'05-Y07','X-Content-Type-Options':'nosniff'}});

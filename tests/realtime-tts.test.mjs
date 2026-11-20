@@ -39,3 +39,7 @@ test('player surfaces service errors and honors disabled auto speak',async()=>{
  const p=player(true);p.sandbox.window.test.queueSpeech('新回答');await settle();assert.match(p.nodes.get('#status').textContent,/尚未连接/);assert.equal(p.played,0);
  p.calls.length=0;p.nodes.get('#autoSpeak').checked=false;p.sandbox.window.test.queueSpeech('不应朗读');await settle();assert.equal(p.calls.length,0);
 });
+
+test('Workers-compatible redirect mode never follows credentials to a new host',async()=>{
+ let calls=0;const r=await handleTts(request('早呀，今天想聊点什么？'),config,async(url,options)=>{calls++;if(options.redirect==='error')throw new TypeError('Unsupported redirect mode: error');assert.equal(options.redirect,'manual');return new Response(null,{status:302,headers:{Location:'https://untrusted.test/'}});});assert.equal(calls,1);assert.equal(r.status,503);
+});
