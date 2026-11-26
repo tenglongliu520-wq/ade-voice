@@ -186,81 +186,101 @@ def mouth_pose(t, name):
     start, signal = speech[name]
     t -= start
     j = round(t*SR)
+    rest = np.array([1.,0.,0.,0.],np.float32)
     if not 0 <= j < len(signal):
-        return .14,0.
+        return rest
     times,sounds = tracks[name]
     k = min(len(sounds)-1,max(0,np.searchsorted(times,t,side='right')-1))
     syllable = sounds[k]
     phase = np.clip((t-times[k])/(times[k+1]-times[k]),0,1)
-    samples = signal[max(0,j-1120):min(len(signal),j+980)]
-    rms = float(np.sqrt(np.mean(samples*samples)))
-    voiced = eased((rms-.009)/.054)
-    rounded = syllable.endswith(('o','u','ou','ong','uo','ui','un'))
-    spread = syllable.endswith(('i','in','ing','ei'))
-    if rounded:
-        vowel, shape = .83,-.68
-    elif spread:
-        vowel, shape = .76,.46
+    window = signal[max(0,j-1380):min(len(signal),j+1180)]
+    rms = float(np.sqrt(np.mean(window*window)))
+    voiced = eased((rms-.010)/.052)
+    if syllable.endswith(('iao','ao','ou','ui','ai')):
+        tail = 2 if syllable.endswith(('ao','ou')) else 3
+        first = 2 if syllable.endswith(('ou','ui')) else 1
+        glide = .75*eased((phase-.26)/.56)
+    elif syllable.endswith(('o','u','ong','uo','un')):
+        first,tail,glide=2,1,.12+.18*eased(phase)
+    elif syllable.endswith(('i','in','ing','ei')):
+        first,tail,glide=3,1,.10
     elif 'a' in syllable:
-        vowel, shape = 1.04,.30
+        first,tail,glide=1,3,.12
     else:
-        vowel, shape = .89,0.
-    onset = eased((phase+.04)/.35) if syllable[0] in 'mbp' else 1.
-    if syllable[0] == 'f':
-        onset *= .58+.42*eased(phase/.30)
-    return .14+1.56*voiced*vowel*onset,shape*voiced
+        first,tail,glide=1,3,.43
+    if syllable[0] in 'mbp':
+        voiced *= eased((phase-.03)/.30)
+    elif syllable[0]=='f':
+        voiced *= .53+.47*eased(phase/.34)
+    strength=voiced*(.88 if name=='boss' else .81 if name=='report' else .82)
+    pose = rest*(1-strength)
+    pose[first] += strength*(1-glide)
+    pose[tail] += strength*glide
+    return pose
 
 def smoothed_poses(name):
     frames = np.arange(-1,25*FPS+1)
-    values = np.array([mouth_pose(i/FPS,name) for i in frames])
-    weights = [.19,.59,.22]
-    return np.stack([np.convolve(values[:,i],weights,mode='valid') for i in range(2)],axis=1)
+    poses = np.array([mouth_pose(i/FPS,name) for i in frames])
+    return np.stack([np.convolve(poses[:,i],[.15,.66,.19],mode='valid') for i in range(4)],axis=1)
 
 class Mouth:
-    def __init__(self, points, name):
-        # Each landmark is (x, inside upper lip y, inside lower lip y) in
-        # storyboard coordinates. Corners stay pinned as the aperture changes.
-        coords = np.array(points,dtype='float32')*2
-        self.x0,self.x1 = int(coords[0,0]),int(coords[-1,0])+1
-        self.y0,self.y1 = int(coords[:,1].min())-13,int(coords[:,2].max())+18
-        self.xx,self.yy = np.meshgrid(np.arange(self.x0,self.x1,dtype='float32'),
-                                     np.arange(self.y0,self.y1,dtype='float32'))
-        self.upper = np.interp(self.xx[0],coords[:,0],coords[:,1])
-        self.lower = np.interp(self.xx[0],coords[:,0],coords[:,2])
-        self.span = self.lower-self.upper
+    def __init__(self, shot, name, origin, center, radii, plates):
+        cx,cy = center
+        rx,ry = radii
+        ox,oy = origin
+        self.x0,self.x1 = (cx-rx)*2,(cx+rx)*2
+        self.y0,self.y1 = (cy-ry)*2,(cy+ry)*2
+        x0,x1 = self.x0-ox*2,self.x1-ox*2
+        y0,y1 = self.y0-oy*2,self.y1-oy*2
+        self.tiles = []
+        for n in range(4):
+            path = plates/f'plate-{shot}-{n}.png'
+            bitmap = cv.imdecode(np.fromfile(path,dtype=np.uint8),cv.IMREAD_COLOR)
+            if bitmap is None:
+                raise ValueError(f'Invalid mouth plate: {path}')
+            patch = bitmap[y0:y1,x0:x1]
+            if patch.shape[:2] != (ry*4,rx*4):
+                raise ValueError(f'Mouth plate has wrong bounds: {path}')
+            self.tiles.append(patch)
         self.poses = smoothed_poses(name)
-        self.edge = np.abs(np.linspace(-1,1,len(self.span)))
+        self.xx,self.yy = np.meshgrid(np.arange(rx*4,dtype=np.float32),np.arange(ry*4,dtype=np.float32))
+        radial = np.sqrt(((self.xx-rx*2)/(rx*2))**2 + ((self.yy-ry*2)/(ry*2))**2)
+        fade = np.clip((1-radial)/.31,0,1)
+        self.alpha = (fade**2*(3-2*fade))[:,:,None]
+        self.flow = {}
+        gray = [cv.cvtColor(tile,cv.COLOR_BGR2GRAY) for tile in self.tiles]
+        engine = cv.DISOpticalFlow_create(cv.DISOPTICAL_FLOW_PRESET_MEDIUM)
+        engine.setFinestScale(0)
+        for a in range(4):
+            for b in range(4):
+                if a==b:
+                    continue
+                displacement = engine.calc(gray[a],gray[b],None)
+                self.flow[a,b] = cv.GaussianBlur(np.clip(displacement,-22,22),(5,5),0)
 
     def render(self, image, t):
         k = min(len(self.poses)-1,max(0,round(t*FPS)))
-        opening, shape = self.poses[k]
-        gap = opening*(1+.55*shape*self.edge**1.4)
-        change = (gap-1)*self.span
-        target_upper = self.upper-.28*change
-        target_lower = self.lower+.72*change
-        # Map only the inner lip and a narrow rim around it. Keep x fixed so
-        # cheek, nose, chin outline and mouth corners stay in their source positions.
-        y = self.yy
-        inside = (y>=target_upper)&(y<=target_lower)
-        top = np.clip(1-(target_upper-y)/11.,0,1)
-        bottom = np.clip(1-(y-target_lower)/15.,0,1)
-        new_y = np.where(y<target_upper,y+(self.upper-target_upper)*top*top,
-                         y+(self.lower-target_lower)*bottom*bottom)
-        inner_position = (y-target_upper)/np.maximum(.01,target_lower-target_upper)
-        new_y = np.where(inside,self.upper+self.span*inner_position,new_y)
-        region = cv.remap(image,self.xx,new_y.astype('float32'),cv.INTER_LINEAR)
+        pose = self.poses[k]
+        active = np.flatnonzero(pose>.007)
+        total = float(pose[active].sum())
+        result = np.zeros_like(self.tiles[0],dtype=np.float32)
+        for a in active:
+            flow = np.zeros_like(self.flow[0,1])
+            for b in active:
+                if b!=a:
+                    flow += self.flow[a,b]*(pose[b]/total)
+            result += cv.remap(self.tiles[a],self.xx-flow[:,:,0],self.yy-flow[:,:,1],
+                               cv.INTER_LINEAR,borderMode=cv.BORDER_REPLICATE)*(pose[a]/total)
         frame = image.copy()
-        frame[self.y0:self.y1,self.x0:self.x1] = region
+        area = frame[self.y0:self.y1,self.x0:self.x1]
+        area[:] = np.clip(area*(1-self.alpha)+result*self.alpha,0,255).astype(np.uint8)
         return frame
 
+mouth_plates = Path(os.environ['CNY_MOUTH_PLATES'])
 mouths = {
-    1: Mouth([(149,250,250),(153,249.6,251.5),(158,249,253.1),
-              (164,248.9,253.8),(168,248.9,253.4),(171,248.8,251.8),(174,248.8,248.8)],'boss'),
-    3: Mouth([(190,363,363),(199,361.8,365),(205,357.9,366.1),(213,357.3,366.5),
-              (223,357.7,367.5),(232,358.9,368.5),(240,361.1,369),
-              (247,365.6,369.4),(254,369,369)],'hesitate'),
-    8: Mouth([(314,359.7,359.7),(316,359.1,362.6),(319,359.8,364),
-              (323,361,364.8),(327,362.8,365),(330,364,364)],'report'),
+    1: Mouth(1,'boss',(90,104),(162,252),(33,22),mouth_plates),
+    3: Mouth(3,'hesitate',(124,100),(224,369),(64,39),mouth_plates),
+    8: Mouth(8,'report',(293,269),(324,365),(30,26),mouth_plates),
 }
 hand_maps = {
     1: [local_mask(113,627,42,50)],
