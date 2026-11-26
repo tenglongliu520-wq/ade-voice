@@ -161,13 +161,93 @@ eye_marks = {
 }
 eye_maps = {k:[(y-cy)*local_mask(cx,cy,rx,10) for cx,cy,rx in points]
             for k,points in eye_marks.items()}
-mouth_marks = {
-    1: (164,247,20,15,'boss'),
-    3: (223,354,40,23,'hesitate'),
-    8: (312,362,21,15,'report'),
+# Timings are relative to the fitted takes used in the 25-second mix.
+syllables = {
+    'boss': ('.00 .22 .56 .74 .94 1.20 1.44 1.84 2.00 2.14 2.36',
+             'jia fang dou cui san bian le cai liao ne'),
+    'hesitate': ('.00 .38 .72 .82 .96', 'wo wo zai gai'),
+    'report': (
+        '.00 .16 .52 .80 1.08 1.20 1.32 1.52 1.66 1.82 2.16 2.40 2.56 2.70 2.88 '
+        '3.24 3.44 3.58 3.74 3.90 4.12 4.60 4.76 4.92 5.06 5.20 5.30 5.46 5.60 '
+        '5.94 6.22 6.38 6.48 6.74 7.08 7.16 7.24 7.39 7.54 7.78 8.10 8.18 8.32 8.43 8.62',
+        'wang zong gang cai mei ji shi bao jin du zheng wen fa nin le '
+        'hai sheng liang ge shu shi fen zhong hou wo zhu dong geng xin '
+        'jia fang lai dian wo gen nin yi qi jie wo lai jiang qing chu',
+    ),
 }
-mouth_maps = {k:((y-cy)/ry*local_mask(cx,cy,rx,ry),name)
-              for k,(cx,cy,rx,ry,name) in mouth_marks.items()}
+tracks = {}
+for name,(timecodes, pinyin) in syllables.items():
+    times = np.array([float(x) for x in timecodes.split()])
+    sounds = pinyin.split()
+    if len(times) != len(sounds)+1:
+        raise ValueError(f'Incomplete lip cue track: {name}')
+    tracks[name] = (times,sounds)
+
+def mouth_pose(t, name):
+    start, signal = speech[name]
+    t -= start
+    j = round(t*SR)
+    if not 0 <= j < len(signal):
+        return .04,1.
+    times,sounds = tracks[name]
+    k = min(len(sounds)-1,max(0,np.searchsorted(times,t,side='right')-1))
+    syllable = sounds[k]
+    phase = np.clip((t-times[k])/(times[k+1]-times[k]),0,1)
+    samples = signal[max(0,j-1420):min(len(signal),j+1020)]
+    rms = float(np.sqrt(np.mean(samples*samples)))
+    voiced = eased((rms-.012)/.058)
+    if syllable.endswith(('o','u','ou','ong','uo','ui','un')):
+        gap, width = .73,.76
+    elif syllable.endswith(('i','in','ing','ei')):
+        gap, width = .55,1.13
+    elif 'a' in syllable:
+        gap, width = 1.,1.04
+    else:
+        gap, width = .76,1.
+    onset = eased(phase/.24) if syllable[0] in 'mbp' else .64+.36*eased(phase/.25)
+    if syllable[0]=='f':
+        onset *= .63+.37*eased(phase/.3)
+    release = 1-.44*eased((phase-.73)/.27)
+    strength = voiced*onset*release
+    return .041+gap*strength,1+(width-1)*strength
+
+class Mouth:
+    def __init__(self, x, y, width, reach, slope, opening, name):
+        self.name = name
+        self.opening = opening*2
+        self.reach = reach*2
+        width *= 2
+        x,y = x*2,y*2
+        ry = int(self.reach+abs(slope)*width+4)
+        self.x0,self.x1 = int(x-width), int(x+width+1)
+        self.y0,self.y1 = y-ry,y+ry+1
+        self.xx,self.yy = np.meshgrid(np.arange(self.x0,self.x1,dtype='float32'),
+                                      np.arange(self.y0,self.y1,dtype='float32'))
+        self.x = self.xx-x
+        self.y = self.yy-y-slope*self.x
+        self.weight = np.maximum(0, 1-(self.x/width)**6)**2
+        self.width_weight = self.weight*np.maximum(0,1-(self.y/self.reach)**2)**2
+
+    def render(self, image, t):
+        gap,width = mouth_pose(t,self.name)
+        # Compress or expand the original lip opening while preserving the
+        # surrounding skin and the original teeth texture.
+        half = self.opening*(.13+1.63*gap)
+        dist = np.abs(self.y)
+        source = np.where(dist<half, dist*self.opening/half,
+                          self.opening+(dist-half)*(self.reach-self.opening)/(self.reach-half))
+        dy = np.where(dist<self.reach,(source-dist)*np.sign(self.y)*self.weight,0)
+        dx = self.x*(1/width-1)*self.width_weight
+        region = cv.remap(image,(self.xx+dx).astype('float32'),(self.yy+dy).astype('float32'),cv.INTER_LINEAR)
+        frame=image.copy()
+        frame[self.y0:self.y1,self.x0:self.x1]=region
+        return frame
+
+mouths = {
+    1: Mouth(161,251,23,23,-.27,2.4,'boss'),
+    3: Mouth(224,363,43,32,.10,5.9,'hesitate'),
+    8: Mouth(321,362,17,19,.14,2.8,'report'),
+}
 hand_maps = {
     1: [local_mask(113,627,42,50)],
     2: [local_mask(298,575,56,31),local_mask(379,548,33,38)],
@@ -176,14 +256,6 @@ hand_maps = {
     9: [local_mask(178,606,44,27)],
 }
 actor_shots = {1,2,3,7,8,9}
-
-def speech_level(t,name):
-    start,a = speech[name]
-    j = int((t-start)*SR)
-    if j<0 or j>=len(a): return 0.
-    b = a[max(0,j-1050):j+1000]
-    rms = np.sqrt(np.mean(b*b))
-    return float(np.clip((rms-.010)/.10,0,1))*(.77+.23*math.sin(t*31))
 
 def render_actor(k,t,begin,finish):
     dt = max(0., t-begin)
@@ -195,10 +267,6 @@ def render_actor(k,t,begin,finish):
         q = eased(dt/(finish-begin))
     dx = np.zeros_like(x)
     dy = np.zeros_like(y)
-    if k in mouth_maps:
-        mouth, name = mouth_maps[k]
-        dy += 5.0*speech_level(t,name)*mouth
-
     blink_times = {1:[1.55],2:[.63],3:[.59],8:[1.7,4.26,7.35],9:[.61,1.5]}
     for mark in blink_times.get(k,[]):
         blink = math.exp(-((dt-mark)/.075)**2)
@@ -234,7 +302,8 @@ def render_actor(k,t,begin,finish):
     map_y = cv.resize(map_y.astype('float32'),(W,H))
     np.clip(map_x,0,W-1,out=map_x)
     np.clip(map_y,0,H-1,out=map_y)
-    return cv.remap(stills[k],map_x,map_y,cv.INTER_LINEAR,borderMode=cv.BORDER_REPLICATE)
+    source=mouths[k].render(stills[k],t) if k in mouths else stills[k]
+    return cv.remap(source,map_x,map_y,cv.INTER_LINEAR,borderMode=cv.BORDER_REPLICATE)
 
 def bgra(im):
     return np.asarray(im)[:,:,[2,1,0,3]].copy()
@@ -316,8 +385,8 @@ print('report captions',marks,flush=True)
 
 report_end=voice_span('report')[1]
 reaction=max(19.75,min(20.81,report_end-.19))
-shots=[(0,2.77,1),(2.77,4.20,2),(4.20,6.80,3),(6.80,7.55,4),
-       (7.55,9.39,5),(9.39,10.40,7),(10.40,reaction,8),(reaction,22.40,9),(22.40,25,10)]
+shots=[(0,3.00,1),(3.00,4.20,2),(4.20,6.80,3),(6.80,7.55,4),
+       (7.55,9.39,5),(9.39,10.20,7),(10.20,reaction,8),(reaction,22.40,9),(22.40,25,10)]
 def scene(shot,t):
     start,end,k=shot
     dt=max(t-start,0)
