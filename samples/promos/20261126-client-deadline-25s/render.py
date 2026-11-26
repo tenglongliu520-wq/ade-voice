@@ -1,4 +1,5 @@
 """Render the 25-second client deadline promo from numbered storyboard assets."""
+import json
 import math
 import os
 import subprocess
@@ -161,57 +162,59 @@ eye_marks = {
 }
 eye_maps = {k:[(y-cy)*local_mask(cx,cy,rx,10) for cx,cy,rx in points]
             for k,points in eye_marks.items()}
-# Timings are relative to the fitted takes used in the 25-second mix.
-syllables = {
-    'boss': ('.00 .22 .56 .74 .94 1.20 1.44 1.84 2.00 2.14 2.36',
-             'jia fang dou cui san bian le cai liao ne'),
-    'hesitate': ('.00 .38 .72 .82 .96', 'wo wo zai gai'),
+# Mandarin character boundaries are forced against the exact fitted takes.
+pronunciations = {
+    'boss': 'jia fang dou cui san bian le cai liao ne',
+    'hesitate': 'wo wo zai gai',
     'report': (
-        '.00 .16 .52 .80 1.08 1.20 1.32 1.52 1.66 1.82 2.16 2.40 2.56 2.70 2.88 '
-        '3.24 3.44 3.58 3.74 3.90 4.12 4.60 4.76 4.92 5.06 5.20 5.30 5.46 5.60 '
-        '5.94 6.22 6.38 6.48 6.74 7.08 7.16 7.24 7.39 7.54 7.78 8.10 8.18 8.32 8.43 8.62',
         'wang zong gang cai mei ji shi bao jin du zheng wen fa nin le '
         'hai sheng liang ge shu shi fen zhong hou wo zhu dong geng xin '
-        'jia fang lai dian wo gen nin yi qi jie wo lai jiang qing chu',
+        'jia fang lai dian wo gen nin yi qi jie wo lai jiang qing chu'
     ),
 }
+alignment = json.loads(Path(__file__).with_name('lip-cues.json').read_text(encoding='utf-8'))
 tracks = {}
-for name,(timecodes, pinyin) in syllables.items():
-    times = np.array([float(x) for x in timecodes.split()])
+for name, pinyin in pronunciations.items():
+    cues = alignment[name]
+    times = np.array([cue['start'] for cue in cues]+[cues[-1]['end']])
     sounds = pinyin.split()
-    if len(times) != len(sounds)+1:
-        raise ValueError(f'Incomplete lip cue track: {name}')
-    tracks[name] = (times,sounds)
+    if len(cues) != len(sounds) or not np.all(np.diff(times)>0):
+        raise ValueError(f'Invalid lip cue track: {name}')
+    tracks[name] = times,sounds
 
 def mouth_pose(t, name):
     start, signal = speech[name]
     t -= start
     j = round(t*SR)
     if not 0 <= j < len(signal):
-        return .24
+        return .14,0.
     times,sounds = tracks[name]
     k = min(len(sounds)-1,max(0,np.searchsorted(times,t,side='right')-1))
     syllable = sounds[k]
     phase = np.clip((t-times[k])/(times[k+1]-times[k]),0,1)
-    samples = signal[max(0,j-1420):min(len(signal),j+1020)]
+    samples = signal[max(0,j-1120):min(len(signal),j+980)]
     rms = float(np.sqrt(np.mean(samples*samples)))
-    voiced = eased((rms-.010)/.062)
-    if syllable.endswith(('o','u','ou','ong','uo','ui','un')):
-        vowel = .80
-    elif syllable.endswith(('i','in','ing','ei')):
-        vowel = .69
+    voiced = eased((rms-.009)/.054)
+    rounded = syllable.endswith(('o','u','ou','ong','uo','ui','un'))
+    spread = syllable.endswith(('i','in','ing','ei'))
+    if rounded:
+        vowel, shape = .83,-.68
+    elif spread:
+        vowel, shape = .76,.46
     elif 'a' in syllable:
-        vowel = 1.
+        vowel, shape = 1.04,.30
     else:
-        vowel = .84
-    onset = eased(phase/.28) if syllable[0] in 'mbp' else 1.
-    return .24+1.17*voiced*vowel*onset
+        vowel, shape = .89,0.
+    onset = eased((phase+.04)/.35) if syllable[0] in 'mbp' else 1.
+    if syllable[0] == 'f':
+        onset *= .58+.42*eased(phase/.30)
+    return .14+1.56*voiced*vowel*onset,shape*voiced
 
-def smoothed_openings(name):
-    # Filter over neighbouring frames to carry the lip pose through syllable boundaries.
-    indices = np.arange(-2,25*FPS+2)
-    values = np.array([mouth_pose(i/FPS,name) for i in indices])
-    return np.convolve(values,[.08,.20,.44,.20,.08],mode='valid')
+def smoothed_poses(name):
+    frames = np.arange(-1,25*FPS+1)
+    values = np.array([mouth_pose(i/FPS,name) for i in frames])
+    weights = [.19,.59,.22]
+    return np.stack([np.convolve(values[:,i],weights,mode='valid') for i in range(2)],axis=1)
 
 class Mouth:
     def __init__(self, points, name):
@@ -225,11 +228,14 @@ class Mouth:
         self.upper = np.interp(self.xx[0],coords[:,0],coords[:,1])
         self.lower = np.interp(self.xx[0],coords[:,0],coords[:,2])
         self.span = self.lower-self.upper
-        self.openings = smoothed_openings(name)
+        self.poses = smoothed_poses(name)
+        self.edge = np.abs(np.linspace(-1,1,len(self.span)))
 
     def render(self, image, t):
-        k = min(len(self.openings)-1,max(0,round(t*FPS)))
-        change = (self.openings[k]-1)*self.span
+        k = min(len(self.poses)-1,max(0,round(t*FPS)))
+        opening, shape = self.poses[k]
+        gap = opening*(1+.55*shape*self.edge**1.4)
+        change = (gap-1)*self.span
         target_upper = self.upper-.28*change
         target_lower = self.lower+.72*change
         # Map only the inner lip and a narrow rim around it. Keep x fixed so
@@ -265,6 +271,63 @@ hand_maps = {
 }
 actor_shots = {1,2,3,7,8,9}
 
+# Facial and posture controls are restricted to their illustrated features.
+# Nose, outer face contours, window frames and furniture lie outside the masks.
+expression_shape = {
+    'boss': (1, (151,212,47,73), (157,194,25,9), (172,207,13,7), (61,345,51,114)),
+    'hesitate': (3, (259,299,93,114), (246,220,75,14), (239,244,60,12), (276,548,112,97)),
+    'report': (8, (351,345,35,50), (330,320,21,9), (329,331,17,7), (337,461,80,65)),
+    'reaction': (9, (169,247,61,93), (192,216,59,9), (199,235,52,11), (218,429,91,82)),
+}
+expression_masks = {k:tuple(local_mask(*m) for m in spec[1:]) for k,spec in expression_shape.items()}
+
+# Times are performance beats relative to each spoken line. The four columns
+# control head dip, eyebrow raise, eye-line lift, and shoulder movement.
+performance = {
+    'boss': [
+        (-.24,0,0,0,0),(.02,1.1,-1.9,-.4,.7),(.48,1.3,-1.4,-.2,1.4),
+        (.82,2.4,-2.4,.0,2.0),(1.43,1.1,-1.6,.1,.3),
+        (1.77,.0,.3,.4,0),(2.11,2.1,-.9,.0,1.4),(2.42,.7,-.5,0,.2),
+    ],
+    'hesitate': [
+        (-.37,1.1,.7,1.0,2.3),(-.08,-1.5,2.2,1.6,1.9),
+        (.13,-2.6,2.5,1.6,2.1),(.30,1.2,.3,.6,2.4),
+        (.64,-1.7,2.8,1.7,1.0),(.92,-.6,1.4,.65,.0),(1.34,.3,.7,.3,.0),
+    ],
+    'report': [
+        (-.12,1.5,.0,-.65,1.3),(.22,-1.7,1.1,.63,.6),(.75,.4,-.3,-.32,.1),
+        (1.22,1.6,-.4,-.72,.4),(1.9,.6,.0,-.16,.0),(2.20,-1.3,1.1,.90,1.25),
+        (2.74,.5,.2,.44,1.4),(3.30,.3,1.0,.9,.8),(3.78,1.0,.0,.4,.35),
+        (4.32,-1.0,.8,1.0,.25),(4.79,1.3,.55,.8,1.55),
+        (5.30,.1,.50,.8,1.),(5.76,-.6,.20,.70,.3),
+        (6.13,.7,-.25,.30,.7),(6.58,-.7,.6,1.,.8),
+        (7.20,.2,.35,.72,1.40),(7.68,-1.1,.75,1.2,0.4),
+        (7.98,.0,.1,.95,.25),(8.33,1.5,.15,.7,.95),(8.65,.45,.0,.6,.1),(9.00,.3,0,.3,.0),
+    ],
+    'reaction': [
+        (.0,1.7,-.4,-.8,.8),(.28,1.5,.0,-.5,.9),(.86,-1.7,1.,1.2,.1),
+        (1.26,-1.2,.45,.9,.0),(1.65,1.15,.1,.75,.26),(2.2,.0,.1,.55,.0),
+    ],
+}
+expression_role = {1:'boss',3:'hesitate',8:'report',9:'reaction'}
+
+def apply_expression(k,t,dt,dx,dy):
+    role = expression_role.get(k)
+    if role is None:
+        return
+    elapsed = dt if role=='reaction' else t-speech[role][0]
+    beats = performance[role]
+    i = max(0,min(len(beats)-2,next((i for i,p in enumerate(beats[1:]) if p[0]>=elapsed),len(beats)-2)))
+    a,b = beats[i],beats[i+1]
+    weight = eased((elapsed-a[0])/(b[0]-a[0]))
+    dip, lift, look, posture = (x+(y-x)*weight for x,y in zip(a[1:],b[1:]))
+    head,brow,eyes,body = expression_masks[role]
+    dy += dip*head - lift*brow - look*eyes + posture*body
+    dx += (posture*.39)*body + (look*.45)*eyes
+    if k==3:
+        second_brow = local_mask(284,226,24,10)
+        dy -= lift*.72*second_brow
+
 def render_actor(k,t,begin,finish):
     dt = max(0., t-begin)
     q = eased(dt/(finish-begin))
@@ -275,7 +338,8 @@ def render_actor(k,t,begin,finish):
         q = eased(dt/(finish-begin))
     dx = np.zeros_like(x)
     dy = np.zeros_like(y)
-    blink_times = {1:[1.55],2:[.63],3:[.59],8:[1.7,4.26,7.35],9:[.61,1.5]}
+    apply_expression(k,t,dt,dx,dy)
+    blink_times = {1:[1.62],2:[.63],3:[.67,1.36],8:[1.52,3.08,5.98,8.68],9:[.68,1.49]}
     for mark in blink_times.get(k,[]):
         blink = math.exp(-((dt-mark)/.075)**2)
         for lid in eye_maps[k]:

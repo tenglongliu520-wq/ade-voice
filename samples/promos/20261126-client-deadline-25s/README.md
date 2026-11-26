@@ -9,3 +9,5 @@
 - `render.py` 使用 Python、NumPy、Pillow、OpenCV 和 imageio-ffmpeg，字体为 Windows 微软雅黑。运行前设置 `CNY_BUILD`（临时目录）、`CNY_VOICE_DIR`（配音目录）、`CNY_ASSETS`（10 张编号分镜图片目录）和 `CNY_OUTPUT`（成片 MP4 路径）。
 
 分镜图片和成片保留在项目本地。
+
+对嘴使用 `lip-cues.json`。它由 `align_dialogue.py` 用 Whisper 将已知普通话台词与成片的三条 `*-fitted.wav` 对齐。修改配音后，先以 `CNY_AUDIO_ONLY=1` 生成拟合后的声轨，再用对齐脚本重新生成时间表。表情根据每句的情绪转换编排，眼神、眉头、头部和肩部都有独立的动作曲线。
