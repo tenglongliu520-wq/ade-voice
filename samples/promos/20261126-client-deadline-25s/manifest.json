@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-26",
+  "brand_voice": "05/Y07",
+  "reference_sha256": "5192c3dcef783feeb1f9fb679290e9059ee42e087eac53a4c38ff6065526902a",
+  "duration_seconds": 25,
+  "clips": [
+    {
+      "file": "audio/boss.wav",
+      "seconds": 2.96,
+      "sha256": "9c8e7dcf4b5e7c2d59a878b88f418770d3f6b28f7d4d64fea19d6b3e6f5564e9"
+    },
+    {
+      "file": "audio/hesitate.wav",
+      "seconds": 1.52,
+      "sha256": "45b69823f92bbaed5a6ef662b8ac1783cee14992c2b5a6738bce2b4a88aabc5b"
+    },
+    {
+      "file": "audio/vo.wav",
+      "seconds": 2.72,
+      "sha256": "a60094754b052110dd9f83ac4a96bb8df9e1bec4358d1d23757e5b0edb54c51a"
+    },
+    {
+      "file": "audio/report.wav",
+      "seconds": 9.84,
+      "sha256": "3312947caad3296f518653af5e8a5cd0cc77b87db79cb17390e83808ca58836f"
+    },
+    {
+      "file": "audio/outro.wav",
+      "seconds": 2.32,
+      "sha256": "d31bb6c8378d9d7e0664b8c801efc6b83e73dcb489aafda5ce8605197f8ca422"
+    }
+  ]
+}
