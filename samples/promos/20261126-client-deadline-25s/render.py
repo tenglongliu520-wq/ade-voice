@@ -147,44 +147,36 @@ stills = [None]+[cv.cvtColor(np.asarray(Image.open(p).convert('RGB').resize((W,H
                             cv.COLOR_RGB2BGR) for p in names]
 y,x = np.mgrid[0:800:2,0:450:2].astype(np.float32)
 
-def g(cx,cy,sx,sy):
-    return np.exp(-.5*((x-cx)/sx)**2-.5*((y-cy)/sy)**2)
+def local_mask(cx, cy, rx, ry):
+    # Compact support leaves pixels outside each feature on the rigid camera map.
+    distance = ((x-cx)/rx)**2 + ((y-cy)/ry)**2
+    return np.maximum(0, 1-distance)**2
 
-class Rig:
-    def __init__(self, head, body, eyes=(), lip=None):
-        hx,hy = head
-        self.head = g(hx,hy,59,80)
-        self.torso = g(*body,105,130)
-        self.center = head
-        self.lids = [(y-ey)*g(ex,ey,ew,7) for ex,ey,ew in eyes]
-        if lip:
-            lx,ly,sw,sh = lip
-            m = g(lx,ly,sw*1.23,sh*1.63)
-            self.lips = ((x-lx)*m/sw,(y-ly)*m/sh,g(lx,ly+15,sw*1.6,20))
-        else:
-            self.lips = (0.,0.,0.)
+eye_marks = {
+    1: [(171,207,13),(353,308,13)],
+    2: [(314,270,16)],
+    3: [(197,241,20),(288,251,22)],
+    8: [(130,216,12),(325,330,15)],
+    9: [(167,241,18),(226,221,14)],
+}
+eye_maps = {k:[(y-cy)*local_mask(cx,cy,rx,10) for cx,cy,rx in points]
+            for k,points in eye_marks.items()}
+mouth_marks = {
+    1: (164,247,20,15,'boss'),
+    3: (223,354,40,23,'hesitate'),
+    8: (312,362,21,15,'report'),
+}
+mouth_maps = {k:((y-cy)/ry*local_mask(cx,cy,rx,ry),name)
+              for k,(cx,cy,rx,ry,name) in mouth_marks.items()}
+hand_maps = {
+    1: [local_mask(113,627,42,50)],
+    2: [local_mask(298,575,56,31),local_mask(379,548,33,38)],
+    7: [local_mask(287,519,37,25)],
+    8: [local_mask(209,578,37,23),local_mask(381,582,29,21)],
+    9: [local_mask(178,606,44,27)],
+}
+actor_shots = {1,2,3,7,8,9}
 
-rig = {
-  1: [
-      Rig((143,194),(55,360),((171,207,12),),(162,247,15,7)),
-      Rig((383,325),(357,469),((353,308,12),)),
-  ],
-  2: [Rig((301,239),(156,417),((314,270,20),))],
-  3: [Rig((252,235),(271,532),((197,241,18),(288,251,20)),(223,354,26,10))],
-  7: [Rig((400,263),(389,570))],
-  8: [
-      Rig((100,214),(50,429),((130,216,12),)),
-      Rig((348,341),(337,489),((325,330,13),),(314,362,13,7)),
-  ],
-  9: [Rig((167,237),(209,460),((167,241,16),(226,221,12),))],
-}
-hands = {
-  1: [g(111,608,27,62),g(169,680,91,42)],
-  2: [g(287,577,61,40),g(378,555,32,42)],
-  7: [g(295,522,41,33)],
-  8: [g(209,579,42,27),g(378,582,34,27)],
-  9: [g(172,608,59,38)],
-}
 def speech_level(t,name):
     start,a = speech[name]
     j = int((t-start)*SR)
@@ -203,54 +195,34 @@ def render_actor(k,t,begin,finish):
         q = eased(dt/(finish-begin))
     dx = np.zeros_like(x)
     dy = np.zeros_like(y)
-    for j,a in enumerate(rig[k]):
-        cx,cy = a.center
-        breath = math.sin(2.36*dt+j)
-        driftx,drifty = {
-            1: ((7,10),(-5,-5)), 2: ((4,7),), 3: ((-10,-11),),
-            7: ((3,8),), 8: ((-5,3),(-10,-12)), 9: ((4,-11),),
-        }[k][j]
-        turn = .030*math.sin(1.45*dt+j) * (.6+.4*q)
-        dx += a.head*(driftx*q+1.7*breath-turn*(y-cy)) + .75*breath*a.torso
-        dy += a.head*(drifty*q+1.2*breath+turn*(x-cx)) - 1.25*breath*a.torso
-        links = {(1,0):'boss',(3,0):'hesitate',(8,1):'report'}
-        if (k,j) in links:
-            strength = speech_level(t,links[k,j])
-            wx,wy,jaw = a.lips
-            dx += 3.3*strength*wx
-            dy += 7.2*strength*wy+4.6*strength*jaw
-        blink_times = {1:[1.55],2:[.63],3:[.59],7:[],8:[1.7,4.26,7.35,9.1],9:[.61,1.5]}.get(k,[])
-        for mark in blink_times:
-            pulse = math.exp(-((dt-mark-j*.25)/.070)**2)
-            for lid in a.lids:
-                dy -= .95*lid*pulse
+    if k in mouth_maps:
+        mouth, name = mouth_maps[k]
+        dy += 5.0*speech_level(t,name)*mouth
+
+    blink_times = {1:[1.55],2:[.63],3:[.59],8:[1.7,4.26,7.35],9:[.61,1.5]}
+    for mark in blink_times.get(k,[]):
+        blink = math.exp(-((dt-mark)/.075)**2)
+        for lid in eye_maps[k]:
+            dy -= .57*lid*blink
+
     if k==1:
-        strike = 1-eased((dt-.16)/.32)
-        dy -= 23*strike*hands[k][0]
-        dx -= 10*strike*hands[k][0]
-        settle = math.exp(-abs(dt-.48)*16)*math.sin((dt-.48)*45)
-        dx += 6*settle*hands[k][1]
-        dy += 3*settle*hands[k][1]
-    if k==2:
-        for j,h in enumerate(hands[k]):
-            stop = 1-eased((dt-1.40)/.20)
-            dy += h*math.sin(dt*(31+j*7)+j)*4.5*stop
-            dx += h*math.sin(dt*(17+j*10))*4.2*stop
-    if k==7:
-        press = math.exp(-((t-9.56)/.09)**2)
-        dy += hands[k][0]*(6*press+3*q)
-        dx += hands[k][0]*5*q
-    if k==8:
-        move = math.sin(min(q*1.75,1)*math.pi)
-        dx -= 9*move*hands[k][0]
-        dy -= 8*move*hands[k][0]
-        dx += (5*eased((dt-4.8)/1.5))*hands[k][1]
-    if k==9:
-        nod = math.exp(-((dt-1.04)/.22)**2)
-        dy += 7*nod*rig[k][0].head
-        dx += 6*eased(dt/1.1)*hands[k][0]
-    zoom = 1.025+{1:.053,2:.047,3:.081,7:.055,8:.305,9:.061}[k]*q
-    target_x = 225+{1:0,2:25,3:6,7:-15,8:49,9:-25}[k]*q
+        strike = 1-eased((dt-.18)/.30)
+        dy -= 4.4*strike*hand_maps[k][0]
+    elif k==2:
+        stop = 1-eased((dt-1.30)/.13)
+        for j,hand in enumerate(hand_maps[k]):
+            dy += 2.7*hand*math.sin(dt*(31+j*7)+j)*stop
+    elif k==7:
+        dy += 3.5*hand_maps[k][0]*math.exp(-((t-9.56)/.09)**2)
+    elif k==8:
+        gesture = math.sin(min(q*1.75,1)*math.pi)
+        dy -= 2.5*gesture*hand_maps[k][0]
+        dx += 2.0*eased((dt-4.8)/1.5)*hand_maps[k][1]
+    elif k==9:
+        dx += 2.4*eased(dt/1.1)*hand_maps[k][0]
+
+    zoom = 1.025+{1:.053,2:.047,3:.081,7:.055,8:.205,9:.061}[k]*q
+    target_x = 225+{1:0,2:25,3:6,7:-15,8:31,9:-25}[k]*q
     target_y = 397+{1:9,2:20,3:-21,7:4,8:-48,9:-31}[k]*q
     if k==1 and .48<=dt<.71:
         target_y += 7*math.exp(-(dt-.48)*18)*math.sin((dt-.48)*65)
@@ -258,8 +230,11 @@ def render_actor(k,t,begin,finish):
     target_y = float(np.clip(target_y,395/zoom,798-405/zoom))
     map_x = ((x-225)/zoom+target_x-dx)*2
     map_y = ((y-395)/zoom+target_y-dy)*2
-    return cv.remap(stills[k],cv.resize(map_x.astype('float32'),(W,H)),cv.resize(map_y.astype('float32'),(W,H)),
-                    cv.INTER_LINEAR,borderMode=cv.BORDER_REFLECT_101)
+    map_x = cv.resize(map_x.astype('float32'),(W,H))
+    map_y = cv.resize(map_y.astype('float32'),(W,H))
+    np.clip(map_x,0,W-1,out=map_x)
+    np.clip(map_y,0,H-1,out=map_y)
+    return cv.remap(stills[k],map_x,map_y,cv.INTER_LINEAR,borderMode=cv.BORDER_REPLICATE)
 
 def bgra(im):
     return np.asarray(im)[:,:,[2,1,0,3]].copy()
@@ -346,7 +321,7 @@ shots=[(0,2.77,1),(2.77,4.20,2),(4.20,6.80,3),(6.80,7.55,4),
 def scene(shot,t):
     start,end,k=shot
     dt=max(t-start,0)
-    if k in rig:
+    if k in actor_shots:
         frame=render_actor(k,max(t,start),start,end)
     else:
         frame=stills[k].copy()
@@ -384,7 +359,7 @@ for f in range(25*FPS):
             frame[:,n:]=prev[:,n:]
         else:
             frame=cv.addWeighted(prev,1-alpha,frame,alpha,0)
-    if k in rig:
+    if k in actor_shots:
         frame=(frame*vignette).astype(np.uint8)
     for a,b,label in subtimes:
         if a<=t<b:
