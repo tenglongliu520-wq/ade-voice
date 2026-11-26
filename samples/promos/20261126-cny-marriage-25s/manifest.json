@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-26",
+  "brand_voice": "05/Y07",
+  "reference_sha256": "5192c3dcef783feeb1f9fb679290e9059ee42e087eac53a4c38ff6065526902a",
+  "clips": [
+    {
+      "file": "audio/mom.wav",
+      "sha256": "3879c041e141fe2059406373d771a7faac23dc8aadfae8df4b1b7438443c2a92",
+      "seconds": 3.76
+    },
+    {
+      "file": "audio/hesitate.wav",
+      "sha256": "7044732c958fb019fea6349164049af2aa11b6892be047e5640abfa649f6d99c",
+      "seconds": 2.96
+    },
+    {
+      "file": "audio/vo.wav",
+      "sha256": "d31bb6c8378d9d7e0664b8c801efc6b83e73dcb489aafda5ce8605197f8ca422",
+      "seconds": 2.32
+    },
+    {
+      "file": "audio/pressure.wav",
+      "sha256": "136e122567e01db0fa026221a5b63883c576641428f00eacaf32bf29ac871f32",
+      "seconds": 4.64
+    },
+    {
+      "file": "audio/dinner.wav",
+      "sha256": "7e104b9b3c9319473b4a40062240bcdd1f6a026c37d53cb5030bd5902f5d40e8",
+      "seconds": 5.04
+    },
+    {
+      "file": "audio/tired.wav",
+      "sha256": "b4316011cf61a8dc004c803d1b146f57e51856eda3a331c6544514bf9212d519",
+      "seconds": 6.16
+    }
+  ]
+}
