@@ -188,65 +188,73 @@ def mouth_pose(t, name):
     t -= start
     j = round(t*SR)
     if not 0 <= j < len(signal):
-        return .04,1.
+        return .24
     times,sounds = tracks[name]
     k = min(len(sounds)-1,max(0,np.searchsorted(times,t,side='right')-1))
     syllable = sounds[k]
     phase = np.clip((t-times[k])/(times[k+1]-times[k]),0,1)
     samples = signal[max(0,j-1420):min(len(signal),j+1020)]
     rms = float(np.sqrt(np.mean(samples*samples)))
-    voiced = eased((rms-.012)/.058)
+    voiced = eased((rms-.010)/.062)
     if syllable.endswith(('o','u','ou','ong','uo','ui','un')):
-        gap, width = .73,.76
+        vowel = .80
     elif syllable.endswith(('i','in','ing','ei')):
-        gap, width = .55,1.13
+        vowel = .69
     elif 'a' in syllable:
-        gap, width = 1.,1.04
+        vowel = 1.
     else:
-        gap, width = .76,1.
-    onset = eased(phase/.24) if syllable[0] in 'mbp' else .64+.36*eased(phase/.25)
-    if syllable[0]=='f':
-        onset *= .63+.37*eased(phase/.3)
-    release = 1-.44*eased((phase-.73)/.27)
-    strength = voiced*onset*release
-    return .041+gap*strength,1+(width-1)*strength
+        vowel = .84
+    onset = eased(phase/.28) if syllable[0] in 'mbp' else 1.
+    return .24+1.17*voiced*vowel*onset
+
+def smoothed_openings(name):
+    # Filter over neighbouring frames to carry the lip pose through syllable boundaries.
+    indices = np.arange(-2,25*FPS+2)
+    values = np.array([mouth_pose(i/FPS,name) for i in indices])
+    return np.convolve(values,[.08,.20,.44,.20,.08],mode='valid')
 
 class Mouth:
-    def __init__(self, x, y, width, reach, slope, opening, name):
-        self.name = name
-        self.opening = opening*2
-        self.reach = reach*2
-        width *= 2
-        x,y = x*2,y*2
-        ry = int(self.reach+abs(slope)*width+4)
-        self.x0,self.x1 = int(x-width), int(x+width+1)
-        self.y0,self.y1 = y-ry,y+ry+1
+    def __init__(self, points, name):
+        # Each landmark is (x, inside upper lip y, inside lower lip y) in
+        # storyboard coordinates. Corners stay pinned as the aperture changes.
+        coords = np.array(points,dtype='float32')*2
+        self.x0,self.x1 = int(coords[0,0]),int(coords[-1,0])+1
+        self.y0,self.y1 = int(coords[:,1].min())-13,int(coords[:,2].max())+18
         self.xx,self.yy = np.meshgrid(np.arange(self.x0,self.x1,dtype='float32'),
-                                      np.arange(self.y0,self.y1,dtype='float32'))
-        self.x = self.xx-x
-        self.y = self.yy-y-slope*self.x
-        self.weight = np.maximum(0, 1-(self.x/width)**6)**2
-        self.width_weight = self.weight*np.maximum(0,1-(self.y/self.reach)**2)**2
+                                     np.arange(self.y0,self.y1,dtype='float32'))
+        self.upper = np.interp(self.xx[0],coords[:,0],coords[:,1])
+        self.lower = np.interp(self.xx[0],coords[:,0],coords[:,2])
+        self.span = self.lower-self.upper
+        self.openings = smoothed_openings(name)
 
     def render(self, image, t):
-        gap,width = mouth_pose(t,self.name)
-        # Compress or expand the original lip opening while preserving the
-        # surrounding skin and the original teeth texture.
-        half = self.opening*(.13+1.63*gap)
-        dist = np.abs(self.y)
-        source = np.where(dist<half, dist*self.opening/half,
-                          self.opening+(dist-half)*(self.reach-self.opening)/(self.reach-half))
-        dy = np.where(dist<self.reach,(source-dist)*np.sign(self.y)*self.weight,0)
-        dx = self.x*(1/width-1)*self.width_weight
-        region = cv.remap(image,(self.xx+dx).astype('float32'),(self.yy+dy).astype('float32'),cv.INTER_LINEAR)
-        frame=image.copy()
-        frame[self.y0:self.y1,self.x0:self.x1]=region
+        k = min(len(self.openings)-1,max(0,round(t*FPS)))
+        change = (self.openings[k]-1)*self.span
+        target_upper = self.upper-.28*change
+        target_lower = self.lower+.72*change
+        # Map only the inner lip and a narrow rim around it. Keep x fixed so
+        # cheek, nose, chin outline and mouth corners stay in their source positions.
+        y = self.yy
+        inside = (y>=target_upper)&(y<=target_lower)
+        top = np.clip(1-(target_upper-y)/11.,0,1)
+        bottom = np.clip(1-(y-target_lower)/15.,0,1)
+        new_y = np.where(y<target_upper,y+(self.upper-target_upper)*top*top,
+                         y+(self.lower-target_lower)*bottom*bottom)
+        inner_position = (y-target_upper)/np.maximum(.01,target_lower-target_upper)
+        new_y = np.where(inside,self.upper+self.span*inner_position,new_y)
+        region = cv.remap(image,self.xx,new_y.astype('float32'),cv.INTER_LINEAR)
+        frame = image.copy()
+        frame[self.y0:self.y1,self.x0:self.x1] = region
         return frame
 
 mouths = {
-    1: Mouth(161,251,23,23,-.27,2.4,'boss'),
-    3: Mouth(224,363,43,32,.10,5.9,'hesitate'),
-    8: Mouth(321,362,17,19,.14,2.8,'report'),
+    1: Mouth([(149,250,250),(153,249.6,251.5),(158,249,253.1),
+              (164,248.9,253.8),(168,248.9,253.4),(171,248.8,251.8),(174,248.8,248.8)],'boss'),
+    3: Mouth([(190,363,363),(199,361.8,365),(205,357.9,366.1),(213,357.3,366.5),
+              (223,357.7,367.5),(232,358.9,368.5),(240,361.1,369),
+              (247,365.6,369.4),(254,369,369)],'hesitate'),
+    8: Mouth([(314,359.7,359.7),(316,359.1,362.6),(319,359.8,364),
+              (323,361,364.8),(327,362.8,365),(330,364,364)],'report'),
 }
 hand_maps = {
     1: [local_mask(113,627,42,50)],
