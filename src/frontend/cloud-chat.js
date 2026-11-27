@@ -147,8 +147,8 @@
   try{
    const response=await fetch('/api/ade/tts',{cache:'no-store'});
    const ready=response.ok&&(await response.json()).ready;
-   #voiceHealth.textContent=ready?'':'（语音暂离线）';
-  }catch{ #voiceHealth.textContent='（语音连接待确认）'; }
+   document.getElementById('voiceHealth').textContent=ready?'':'（语音暂离线）';
+  }catch{ document.getElementById('voiceHealth').textContent='（语音连接待确认）'; }
  }
  async function check(){try{await window.adeReady;const response=await fetch('/api/ade/chat');service=await response.json();$('#connection').textContent=service.ready?'● 阿德已连接':'● 阿德正在上线…';$('#connection').classList.toggle('ready',service.ready);if(service.ready){state('idle','你好，我是阿德 ♡');setStatus('按住说话，松开转成草稿；也可以打字，校对后发送。');}else{setStatus('问答服务暂未就绪，请稍后重试。');setTimeout(check,4000);}$('#autoSpeak').disabled=!service.tts;controls();}catch(error){setStatus(error.message||'阿德主机暂时离线，请稍后刷新。');if(!/完整|邀请码/.test(error.message||''))setTimeout(check,6000);}}
  check();checkVoice();
