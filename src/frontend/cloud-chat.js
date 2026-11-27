@@ -16,7 +16,17 @@
  function stopSpeech(){speechSequence++;speechAbort?.abort();speechAbort=null;speechTasks=[];if(player){player.pause();player=null;}avatar.analyser=null;speechRunning=false;state('idle','我在这里，慢慢来');controls();}
  function unlockAudio(){try{if(!audioContext){const Context=window.AudioContext||window.webkitAudioContext;audioContext=new Context();}audioContext.resume().catch(()=>{});const source=audioContext.createBufferSource();source.buffer=audioContext.createBuffer(1,1,22050);source.connect(audioContext.destination);source.start();}catch{}}
  function cleanSpeech(text){return text.replace(/<think>[\s\S]*?<\/think>/g,'').replace(/[*#`]/g,'').trim();}
- function queueSpeech(text){text=cleanSpeech(text);if(!/[\p{L}\p{N}]/u.test(text)||document.hidden||!$('#autoSpeak').checked||!service.tts)return;for(let i=0;i<text.length;i+=24)speechTasks.push(text.slice(i,i+24));consumeSpeech();}
+ function queueSpeech(text){
+  text=cleanSpeech(text);
+  if(!/[\p{L}\p{N}]/u.test(text)||document.hidden||!$('#autoSpeak').checked||!service.tts)return;
+  while(text.length>96){
+   const end=Math.max(text.lastIndexOf('。',95),text.lastIndexOf('！',95),text.lastIndexOf('？',95),text.lastIndexOf('，',95));
+   const cut=end>=48?end+1:96;
+   speechTasks.push(text.slice(0,cut));text=text.slice(cut);
+  }
+  if(text.trim())speechTasks.push(text);
+  consumeSpeech();
+ }
  async function consumeSpeech(){
   if(speechRunning||!speechTasks.length)return;
   speechRunning=true;listening=false;const sequence=speechSequence;controls();
@@ -25,7 +35,7 @@
    try{
     if(!audioContext){const Context=window.AudioContext||window.webkitAudioContext;audioContext=new Context();}await audioContext.resume();
     if(audioContext.state!=='running')throw Error('请点击回答下方的重听按钮，开启声音播放。');
-    state('think','正在合成05号声音…');setStatus('正在合成05号声音，请稍等；可以停止或稍后重听。');
+    state('think','正在合成05号声音…');setStatus('正在准备阿德的声音。想马上听，可以点回答下方的“用设备声音朗读”。');
     let response;
     const manifestResponse=await fetch('/voice-05/manifest.json',{signal:speechAbort.signal});
     if(!manifestResponse.ok)throw Error('阿德声线配置加载失败，请重试。');
@@ -40,11 +50,41 @@
     const source=audioContext.createBufferSource(),analyser=audioContext.createAnalyser();source.buffer=buffer;analyser.fftSize=256;source.connect(analyser);analyser.connect(audioContext.destination);avatar.analyser=analyser;
     const current={pause:()=>{try{source.stop();}catch{}}};player=current;const segmentAbort=speechAbort;
     try{await new Promise((resolve,reject)=>{source.onended=resolve;segmentAbort.signal.addEventListener('abort',()=>{current.pause();resolve();},{once:true});try{source.start();state('talk','阿德正在回答…');setStatus('正在朗读，可以随时停止。');}catch(e){reject(e);}});}finally{source.disconnect();analyser.disconnect();if(player===current)player=null;if(avatar.analyser===analyser)avatar.analyser=null;}
-   }catch(error){if(error.name!=='AbortError')setStatus(error.message||'浏览器暂未播放声音，点击回答下方“重听”即可。');}
+   }catch(error){
+    if(sequence===speechSequence&&error.name!=='AbortError'){
+     speechTasks=[];
+     setStatus(error.message||'语音暂时无法播放，可以重听或使用设备声音。');
+    }
+   }
   }
   if(sequence===speechSequence){speechRunning=false;speechAbort=null;if(!busy)state('idle','还有什么想和我说的？');controls();resumeListening();}
  }
  function addReplay(entry,text){const button=document.createElement('button');button.type='button';button.className='replay';button.textContent='▷ 重听这条回答';button.onclick=()=>{unlockAudio();listening=false;stopSpeech();$('#autoSpeak').checked=true;queueSpeech(text);};entry.article.append(button);}
+ function addDeviceRead(entry,text){
+  const synthesis=window.speechSynthesis;
+  if(!synthesis||!window.SpeechSynthesisUtterance)return;
+  const button=document.createElement('button');
+  button.type='button';button.className='replay';button.textContent='▷ 用设备声音朗读';
+  button.onclick=()=>{
+   stopSpeech();
+   const utterance=new window.SpeechSynthesisUtterance(cleanSpeech(text));
+   utterance.lang='zh-CN';
+   const voices=synthesis.getVoices();
+   const voice=voices.find(v=>/^zh[-_](CN|Hans)/i.test(v.lang))||voices.find(v=>/^zh/i.test(v.lang));
+   if(voice)utterance.voice=voice;
+   const current={pause:()=>synthesis.cancel()};
+   const finish=message=>{
+    if(player!==current)return;
+    player=null;speechRunning=false;state('idle','还有什么想和我说的？');setStatus(message);controls();
+   };
+   utterance.onstart=()=>{if(player===current){state('talk','正在用设备声音朗读…');setStatus('正在用设备声音朗读，可以随时停止。');}};
+   utterance.onend=()=>finish('设备朗读完毕。');
+   utterance.onerror=()=>finish('设备声音无法播放，请检查设备音量和中文语音设置。');
+   player=current;speechRunning=true;controls();setStatus('正在启动设备声音…');
+   try{synthesis.speak(utterance);}catch{finish('设备声音无法播放，请检查设备音量和中文语音设置。');}
+  };
+  entry.article.append(button);
+ }
  async function send(text){
   text=text.trim();if(!text||busy||!service.ready||voiceMode||micStarting)return;
   if(input.maxLength>0&&text.length>input.maxLength){setStatus('文字超过'+input.maxLength+'字，草稿已完整保留，请精简后再发送。');return;}
@@ -52,15 +92,17 @@
   unlockAudio();listening=false;resetRecognizer();stopSpeech();busy=true;streamDone=false;const ticket=++turn;controls();$('#prompts').hidden=true;
   addMessage('user',text);input.value='';state('think','阿德正在想…');setStatus('阿德正在想你的问题…');const entry=addMessage('assistant','…');
   const requestHistory=[...history,{role:'user',content:text}].slice(-21);if(requestHistory[0]?.role==='assistant')requestHistory.shift();
-  let answer='',speechPending='';controller=new AbortController();let failed=false;
+  let answer='';controller=new AbortController();let failed=false;
   try{
    const response=await fetch('/api/ade/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:requestHistory}),signal:controller.signal});
    if(!response.ok){const result=await response.json().catch(()=>({}));throw Error(result.detail||'阿德暂时没能连接，请稍后重试');}
    const reader=response.body.getReader(),decoder=new TextDecoder();let pending='';
-   while(true){const {done,value}=await reader.read();if(done)break;pending+=decoder.decode(value,{stream:true});const lines=pending.split('\n');pending=lines.pop();for(const line of lines){if(!line.startsWith('data: '))continue;const packet=JSON.parse(line.slice(6));if(packet.error)throw Error(packet.error);if(packet.delta){answer+=packet.delta;speechPending+=packet.delta;entry.body.textContent=answer;log.scrollTop=log.scrollHeight;const match=speechPending.match(/^([\s\S]{8,}?[。！？\n])/);if(match){queueSpeech(match[1]);speechPending=speechPending.slice(match[1].length);}else if(speechPending.length>=24){const comma=speechPending.slice(8,24).lastIndexOf('，');const cut=comma>=0?comma+9:24;queueSpeech(speechPending.slice(0,cut));speechPending=speechPending.slice(cut);}}}}
+   while(true){const {done,value}=await reader.read();if(done)break;pending+=decoder.decode(value,{stream:true});const lines=pending.split('\n');pending=lines.pop();for(const line of lines){if(!line.startsWith('data: '))continue;const packet=JSON.parse(line.slice(6));if(packet.error)throw Error(packet.error);if(packet.delta){answer+=packet.delta;entry.body.textContent=answer;log.scrollTop=log.scrollHeight;}}}
    if(!answer.trim())throw Error('这次没有生成回答，请重试');
-   queueSpeech(speechPending);history=[...requestHistory,{role:'assistant',content:answer}].slice(-20);addReplay(entry,answer);if(!speechRunning&&!speechTasks.length)setStatus('回答完成，可以继续追问。');
-  }catch(error){failed=true;if(answer){history=[...requestHistory,{role:'assistant',content:answer}].slice(-20);addReplay(entry,answer);}else{entry.body.textContent=error.name==='AbortError'?'已停止这次回答。':'这次没能完成回答，请再试一次。';input.value=[text,input.value].filter(Boolean).join('\n');}setStatus(error.name==='AbortError'?'已停止回答。':error.message);}
+   history=[...requestHistory,{role:'assistant',content:answer}].slice(-20);
+   addReplay(entry,answer);addDeviceRead(entry,answer);queueSpeech(answer);
+   if(!speechRunning&&!speechTasks.length)setStatus('回答完成，可以继续追问。');
+  }catch(error){failed=true;if(answer){history=[...requestHistory,{role:'assistant',content:answer}].slice(-20);addReplay(entry,answer);addDeviceRead(entry,answer);}else{entry.body.textContent=error.name==='AbortError'?'已停止这次回答。':'这次没能完成回答，请再试一次。';input.value=[text,input.value].filter(Boolean).join('\n');}setStatus(error.name==='AbortError'?'已停止回答。':error.message);}
   finally{if(ticket===turn){busy=false;streamDone=true;controller=null;if(!speechRunning)state('idle','我在这里，慢慢来');controls();if(!failed)resumeListening();}}
  }
  function combineDraft(text){return [draftPrefix.trimEnd(),String(text||'').trim()].filter(Boolean).join('\n');}

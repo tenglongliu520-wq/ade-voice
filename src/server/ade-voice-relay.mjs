@@ -12,14 +12,16 @@ export async function pullSynthesis(request,db,text) {
   const payload=await seal(key,id,new TextEncoder().encode(text));
   const now=Date.now(), deadline=now+155000;
   const written=await db.prepare(`INSERT INTO ade_voice_job(id,host,peer,payload,state,expires)
-    SELECT ?,?,?,?,'waiting',? WHERE (SELECT count(*) FROM ade_voice_job WHERE expires>?)<5`)
-    .bind(id,host.peer,identity.publicKey,payload,deadline,now).run();
+    SELECT ?,?,?,?,'waiting',? WHERE (SELECT count(*) FROM ade_voice_job
+      WHERE host=? AND state IN ('waiting','working') AND expires>?)<5`)
+    .bind(id,host.peer,identity.publicKey,payload,now+35000,host.peer,now).run();
   if(!written.meta.changes)return json({detail:'阿德正在朗读其他回答，请稍后重听。'},429);
   try{
     while(Date.now()<deadline && !request.signal.aborted){
       await delay(3500);
-      const result=await db.prepare("SELECT state,payload FROM ade_voice_job WHERE id=? AND state IN ('done','failed')").bind(id).first();
-      if(!result)continue;
+      const result=await db.prepare("SELECT state,CASE WHEN state='done' THEN payload END AS payload,expires FROM ade_voice_job WHERE id=?").bind(id).first();
+      if(!result||result.expires<=Date.now())return json({detail:'阿德的语音排队超时，可以重听或使用设备声音。'},429);
+      if(result.state==='waiting'||result.state==='working')continue;
       if(result.state==='failed')return json({detail:'这段语音合成失败，请点击重听。'},503);
       const audio=await unseal(key,id,result.payload);
       return new Response(audio,{headers:{'Content-Type':'audio/wav','Cache-Control':'no-store','X-Ade-Voice':'05-Y07','X-Content-Type-Options':'nosniff'}});
@@ -43,9 +45,9 @@ export async function handleVoiceHost(request,db,token) {
     await db.batch([db.prepare('DELETE FROM ade_voice_job WHERE expires<=?').bind(now),
       db.prepare('INSERT INTO ade_voice_host(id,peer,seen) VALUES(1,?,?) ON CONFLICT(id) DO UPDATE SET peer=excluded.peer,seen=excluded.seen').bind(peer,now)]);
     if(op==='heartbeat')return json({});
-    const job=await db.prepare(`UPDATE ade_voice_job SET state='working' WHERE id=(
+    const job=await db.prepare(`UPDATE ade_voice_job SET state='working',expires=? WHERE id=(
       SELECT id FROM ade_voice_job WHERE state='waiting' AND host=? AND expires>? ORDER BY expires LIMIT 1)
-      RETURNING id,peer,payload`).bind(peer,now).first();
+      RETURNING id,peer,payload`).bind(now+140000,peer,now).first();
     return json({job:job||null});
   }
   if((op!=='done'&&op!=='failed')||typeof id!=='string'||id.length!==36)return json({},400);
