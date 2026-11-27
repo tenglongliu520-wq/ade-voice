@@ -143,6 +143,14 @@
  $('#motion').onclick=event=>{const paused=event.currentTarget.getAttribute('aria-pressed')!=='true';avatar.setPaused(paused);event.currentTarget.setAttribute('aria-pressed',String(paused));event.currentTarget.textContent=paused?'开启动作':'暂停人物动作';};
  $('#prompts').querySelectorAll('button').forEach(button=>button.onclick=()=>send(button.textContent));
  document.addEventListener('visibilitychange',()=>{if(document.hidden){holdVoice.cancel();if(voiceMode)reviewTranscript(partialText,'录音已暂停，草稿已保留；回来后请校对再发送。');else endVoice();stopSpeech();}});window.addEventListener('pagehide',()=>{holdVoice.cancel();endVoice();controller?.abort();stopSpeech();});
+ async function checkVoice(){
+  try{
+   const response=await fetch('/api/ade/tts',{cache:'no-store'});
+   const ready=response.ok&&(await response.json()).ready;
+   #voiceHealth.textContent=ready?'':'（语音暂离线）';
+  }catch{ #voiceHealth.textContent='（语音连接待确认）'; }
+ }
  async function check(){try{await window.adeReady;const response=await fetch('/api/ade/chat');service=await response.json();$('#connection').textContent=service.ready?'● 阿德已连接':'● 阿德正在上线…';$('#connection').classList.toggle('ready',service.ready);if(service.ready){state('idle','你好，我是阿德 ♡');setStatus('按住说话，松开转成草稿；也可以打字，校对后发送。');}else{setStatus('问答服务暂未就绪，请稍后重试。');setTimeout(check,4000);}$('#autoSpeak').disabled=!service.tts;controls();}catch(error){setStatus(error.message||'阿德主机暂时离线，请稍后刷新。');if(!/完整|邀请码/.test(error.message||''))setTimeout(check,6000);}}
- check();
+ check();checkVoice();
+ setInterval(()=>{if(!document.hidden)checkVoice();},60000);
 })();

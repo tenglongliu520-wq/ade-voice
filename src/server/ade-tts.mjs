@@ -1,15 +1,17 @@
+import {liveVoice,pullSynthesis} from './ade-voice-relay.mjs';
 const buckets=new Map();
 const reply=(detail,status)=>Response.json({detail},{status,headers:{'Cache-Control':'no-store'}});
 // The upstream must serve the selected 05/Y07 clone, never a device/default voice.
 export async function handleTts(request,config={},fetcher=fetch){
  const url=new URL(request.url);
  if(request.headers.get('origin')&&request.headers.get('origin')!==url.origin)return reply('请从得体说页面播放声音',403);
- if(request.method==='GET')return Response.json({ready:!!(config.url&&config.token),voice:'05',voice_id:'Y07'},{headers:{'Cache-Control':'no-store'}});
+ if(request.method==='GET')return Response.json({ready:config.db?!!(await liveVoice(config.db)):!!(config.url&&config.token),voice:'05',voice_id:'Y07'},{headers:{'Cache-Control':'no-store'}});
  if(request.method!=='POST')return reply('请求方法不支持',405);
  let text;
  try{const raw=await request.text();if(raw.length>6000)throw Error();text=JSON.parse(raw).text;if(typeof text!=='string'||!text.trim()||text.length>1600)throw Error();}catch{return reply('朗读内容应为1至1600字',400);}
  const ip=request.headers.get('cf-connecting-ip');
  if(ip){const now=Date.now();for(const [key,value] of buckets)if(now-value.start>60000)buckets.delete(key);let bucket=buckets.get(ip);if(!bucket){bucket={start:now,count:0};buckets.set(ip,bucket);}if(++bucket.count>60)return reply('朗读请求太频繁，请稍后重试。',429);}
+ if(config.db)return pullSynthesis(request,config.db,text.trim());
  if(!config.url||!config.token)return reply('阿德实时语音服务尚未连接，文字已保留；连接后可点击重听。',503);
  try{
   const target=new URL(config.url);if(target.protocol!=='https:')return reply('语音服务配置不正确',503);

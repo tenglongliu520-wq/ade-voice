@@ -1,5 +1,5 @@
 import {env} from 'cloudflare:workers';
 import {handleTts} from '../../../../server/ade-tts.mjs';
 export const dynamic='force-dynamic';
-export const GET=(request:Request)=>handleTts(request,{url:env.ADE_TTS_URL,token:env.ADE_TTS_TOKEN});
+export const GET=(request:Request)=>handleTts(request,{db:env.ADE_VOICE_HOST_TOKEN?env.DB:undefined,url:env.ADE_TTS_URL,token:env.ADE_TTS_TOKEN});
 export const POST=GET;

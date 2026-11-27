@@ -1,0 +1,4 @@
+import {env} from 'cloudflare:workers';
+import {handleVoiceHost} from '../../../../server/ade-voice-relay.mjs';
+export const dynamic='force-dynamic';
+export const POST=(request:Request)=>handleVoiceHost(request,env.DB,env.ADE_VOICE_HOST_TOKEN);
